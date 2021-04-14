@@ -1,14 +1,8 @@
-#include <windows.h>
-#include <tchar.h>
-#include <math.h>
-#include <stdio.h>
-#include <fcntl.h>
-#include <io.h>
+#include "GeneralUse.h"
 
 DWORD WINAPI MyThreadFunction(LPVOID lpParam);
-int obterValorDoUtilizador();
 
-// estrutura de dados para controlar as threads
+// estrutura de dados para controlar as threads // Template
 typedef struct {
 	int start;
 	int end;
@@ -16,30 +10,18 @@ typedef struct {
 	HANDLE *mutex;
 } TDados;
 
-#define TAM 100
-
-// função da(s) thread(s)
-// ...
-// número * máximo * de threads
-// podem (e devem) ser menos
-#define MAX_THREADS 20
-
 int _tmain(int argc, TCHAR * argv[]) {
-	// matriz de handles das threads
-	HANDLE hThreads[MAX_THREADS];
-	DWORD dwThreadIdArray[MAX_THREADS];
-	// Matriz de dados para as threads;
-	TDados tdados[MAX_THREADS];
-	// número efectivo de threads
-	int numthreads;
+
+	// memória partilhada
+	HANDLE hMapFile;
+	LPTSTR pBuf = NULL;
+
 	// limite superior
-	unsigned int limsup;
+	int limsup;
 
-	unsigned int range;
+	TCHAR *msg;
 
-	int counter = 0;
-
-	HANDLE ghMutex;
+	TCHAR szMsg[BUF_SIZE];
 
 #ifdef UNICODE
 	_setmode(_fileno(stdin), _O_WTEXT);
@@ -47,83 +29,71 @@ int _tmain(int argc, TCHAR * argv[]) {
 #endif
 
 	_tprintf(TEXT("\nLimite sup. -> "));
-	limsup = obterValorDoUtilizador();
+	limsup = getIntInput();
 
-	_tprintf(TEXT("\nNum threads -> "));
-	numthreads = obterValorDoUtilizador();
+	_tprintf(TEXT("\nLimite sup.: %d\n"), limsup);
 
-	// verificação do máximo de threads limitadas pelo sistema
-	if (numthreads > MAX_THREADS)
-		numthreads = MAX_THREADS;
+	_tprintf(TEXT("\nFrase. -> "));
+	msg = getTCHARInput();
 
-	// INICIO DO MUTEX
-	ghMutex = CreateMutex(
-		NULL,              // default security attributes
-		FALSE,             // initially not owned
-		NULL);             // unnamed mutex
+	_tprintf(TEXT("\nFrase: %s\n\n"), msg);
 
-	if (ghMutex == NULL)
+	hMapFile = CreateFileMapping(
+		INVALID_HANDLE_VALUE,    // use paging file
+		NULL,                    // default security
+		PAGE_READWRITE,          // read/write access
+		0,                       // maximum object size (high-order DWORD)
+		BUF_SIZE,                // maximum object size (low-order DWORD)
+		TEXT("CentralMemory"));                 // name of mapping object
+
+
+	if (hMapFile == NULL)
 	{
-		_tprintf(TEXT("CreateMutex error: %d\n"), GetLastError());
+		_tprintf(TEXT("Could not create file mapping object (%d).\n"),
+			GetLastError());
+		return -3;
+	}
+	else if (GetLastError() == ERROR_ALREADY_EXISTS)
+	{
+		_tprintf(TEXT("Já existe uma execução em curso.\nVou encerrar!\n"));
+
+		CloseHandle(hMapFile);
+
+		_gettch();
+
+		return -2;
+	}
+
+	pBuf = (LPTSTR)MapViewOfFile(hMapFile,   // handle to map object
+		FILE_MAP_ALL_ACCESS, // read/write permission
+		0,
+		0,
+		BUF_SIZE);
+
+	if (pBuf == NULL)
+	{
+		_tprintf(TEXT("Could not map view of file (%d).\n"),
+			GetLastError());
+
+		CloseHandle(hMapFile);
+
 		return -1;
 	}
 
-	// FAZER prepara e cria threads
+	/*if ((pBuf = startMemory(&hMapFile, TEXT("CentralMemory"), BUF_SIZE)) == NULL) {
+		_tprintf(TEXT("\nErro ao iniciar a memória partilhada!\n"));
 
-	for (int i = 0, liminf = 1; i < numthreads; i++)
-	{
+		CloseHandle(hMapFile);
+		return -1;
+	}*/
 
-		range = ((limsup - liminf - 1) / numthreads);
+	CopyMemory((PVOID)pBuf, msg, (_tcslen(msg) * sizeof(TCHAR)));
 
-		if (i == 0)			tdados[i].start = liminf;		else			tdados[i].start = tdados[i - 1].end + 1;		tdados[i].end = tdados[i].start + range;		//Qd o número for muito grande pode fazer overflow e não conseguir entrar no if		if ((tdados[i].end != limsup) && ((tdados[i].end + range) > limsup))			tdados[i].end = limsup;
+	_gettch();
 
-		tdados[i].mutex = &ghMutex;
-		tdados[i].count = &counter;
-		//tdados[i].start = ((limsup / numthreads) * i);
-		//tdados[i].end = ((limsup / numthreads) * i) + (limsup / numthreads);
+	UnmapViewOfFile(pBuf);
 
-		_tprintf(TEXT("\nValor mínimo: %d \nValor máximo: %d \n"), tdados[i].start, tdados[i].end);
-
-		hThreads[i] = CreateThread(
-			NULL,                   // default security attributes
-			0,                      // use default stack size
-			MyThreadFunction,       // thread function name
-			&tdados[i],          // argument to thread function
-			CREATE_SUSPENDED,                      // use default creation flags
-			&dwThreadIdArray[i]);   // returns the thread identifier
-
-		if (hThreads[i] == NULL)
-		{
-			_tprintf(TEXT("\nCreateThread Error\n"));
-		}
-	}
-
-	for (int i = 0; i < numthreads; i++)
-	{
-		if (ResumeThread(hThreads[i]) == -1)
-		{
-			_tprintf(TEXT("\nErro ao resume da Thread!!!\n"));
-		}
-	}
-
-	// manda as threads começar
-	// FAZER aguarda / controla as threads
-
-	WaitForMultipleObjects(MAX_THREADS, hThreads, TRUE, INFINITE);
-
-	for (int i = 0; i < numthreads; i++)
-	{
-		CloseHandle(hThreads[i]);
-	}
-
-	CloseHandle(ghMutex);
-
-	// manda as threads parar
-	// Cód. ref. para aguardar por uma tecla – caso faça falta
-	// _tprintf(TEXT("\nCarregue numa tecla"));
-	// _gettch();
-
-	_tprintf(TEXT("\nMúltiplos de 3 entre 1 a %d : %d\n"), limsup, counter);
+	CloseHandle(hMapFile);
 
 	return 0;
 }
@@ -174,18 +144,4 @@ DWORD WINAPI MyThreadFunction(LPVOID lpParam)
 	return 0;
 }
 
-
-int obterValorDoUtilizador() {
-	TCHAR valor[TAM];
-
-	fflush(stdin);
-	_fgetts(valor, TAM, stdin);
-
-	valor[_tcslen(valor) - 1] = TEXT('\0');
-
-	// usar este para juntar strings com valores
-	//_stprintf_s(chave_nome, TAM, TEXT("Software\\AULA\\%s"), par_nome);
-
-	return _tstoi(valor);
-}
 
