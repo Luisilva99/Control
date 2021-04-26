@@ -35,14 +35,8 @@ int _tmain(int argc, TCHAR * argv[]) {
 	_setmode(_fileno(stderr), _O_WTEXT);
 #endif
 
-	//#######Tratamento de Argumentos#######//
-
-
-
-	//#######------------------------#######//
-
 	//#####Limites Registry#####//
-	//DEBUG - Necessita de ser melhorado ainda não funciona bem
+
 	if ((maxAero = readAeroLimits()) < 0) {
 		maxAero = MAX_AERO;
 
@@ -73,11 +67,71 @@ int _tmain(int argc, TCHAR * argv[]) {
 		}
 	}
 
-	_tprintf(TEXT("\nLimite máximo de aeroportos: %d\nLimite máximo de aviões: %d\n"), maxAero, maxPlane);
-
 	//#####----------------#####//
 
-	_gettch();
+	//#######Tratamento de Argumentos#######//
+
+	if (argv[1] != NULL)
+	{
+		if ((tipoErro = createAeroLimits(_tstoi(argv[1]))) == 0)
+		{
+			_tprintf(TEXT("\nDefinição do limite de Aeroportos foi guardada no Sistema.\n"));
+
+			maxAero = _tstoi(argv[1]);
+		}
+		else
+		{
+			_tprintf(TEXT("\nErro crítico! - ERRO 1 - Tipo %d\nUsar valores de Sistema.\n"), tipoErro);
+
+			if ((maxAero = readAeroLimits()) < 0) {
+				maxAero = MAX_AERO;
+
+				if ((tipoErro = createAeroLimits(MAX_AERO)) == 0)
+				{
+					_tprintf(TEXT("\nDefinição do limite de Aeroportos foi guardada no Sistema.\n"));
+				}
+				else
+				{
+					_tprintf(TEXT("\nErro crítico! - ERRO 1 - Tipo %d\n"), tipoErro);
+
+					return -1;
+				}
+			}
+		}
+	}
+
+	if (argv[2] != NULL)
+	{
+		if ((tipoErro = createPlaneLimits(_tstoi(argv[2]))) == 0)
+		{
+			_tprintf(TEXT("\nDefinição do limite de Aviões foi guardada no Sistema.\n"));
+
+			maxPlane = _tstoi(argv[2]);
+		}
+		else
+		{
+			_tprintf(TEXT("\nErro crítico! - ERRO 2 - Tipo %d\nUsar valores de Sistema.\n"), tipoErro);
+
+			if ((maxPlane = readPlaneLimits()) < 0) {
+				maxPlane = MAX_PLANES;
+
+				if ((tipoErro = createPlaneLimits(MAX_PLANES)) == 0)
+				{
+					_tprintf(TEXT("\nDefinição do limite de Aviões foi guardada no Sistema.\n"));
+				}
+				else
+				{
+					_tprintf(TEXT("\nErro crítico! - ERRO 2 - Tipo %d\n"), tipoErro);
+
+					return -1;
+				}
+			}
+		}
+	}
+
+	//#######------------------------#######//
+
+	_tprintf(TEXT("\nLimite máximo de aeroportos: %d\nLimite máximo de aviões: %d\n"), maxAero, maxPlane);
 
 	//#############Memória Partilhada#############//
 
@@ -130,7 +184,9 @@ int _tmain(int argc, TCHAR * argv[]) {
 		return -1;
 	}*/
 
-	CopyMemory((PVOID)pBuf, msg, (_tcslen(msg) * sizeof(TCHAR)));
+	//CopyMemory((PVOID)pBuf, msg, (_tcslen(msg) * sizeof(TCHAR)));
+
+	_tprintf(TEXT("\nMemória Partilhada criada com sucesso.\n"));
 
 	//#############------------------#############//
 

@@ -7,21 +7,49 @@
 #include <stdio.h>
 #include <fcntl.h>
 #include <io.h>
+#include <winreg.h>
 
+//Variáveis de Input//
 #define TAM 100
 #define TAM_INPUT 500
+//------------------//
 
+//Variáveis Futuras Memória//
 #define MAX_THREADS 20
 #define BUF_SIZE 256
+//-------------------------//
 
+//Variáveis do Registry//
 #define REG_SETTINGS_KEY TEXT("Software\\CONTROL\\SETTINGS")
 #define SETTINGS_PLANE TEXT("maxPlane")
 #define MAX_PLANES 5
 #define SETTINGS_AERO TEXT("maxAero")
 #define MAX_AERO 5
+//---------------------//
 
+//Variáveis da Sincronização//
 #define CONTROL_MUTEX TEXT("Nome")
 #define CONTROL_SEMAPHORE_ENTRY TEXT("Nome")
+//--------------------------//
+
+//Estrutura Avião//
+typedef struct
+{
+	int id;
+} Plane;
+//---------------//
+
+//Estrutura da Célula do Mapa//
+typedef struct
+{
+	int isAero;
+	Plane seaPlane;
+	Plane hangar[MAX_PLANES];
+	TCHAR aeroName[TAM_INPUT];
+	int Y;
+	int X;
+} MapUnit;
+//---------------------------//
 
 //Função de Obtenção de inteiros
 //Retorna: Inteiro
@@ -39,7 +67,7 @@ LPTSTR startMemory(HANDLE * create, TCHAR * memoryName, DWORD memorySize);
 //Função de Leitura do Máximo de Aeroportos
 //Retorna: Valor do máximo de Aeroportos a ser criados
 //Erros:
-//		-1	-	Chave não existia e foi criada pela primeira vez	-	usar valor default
+//		-1	-	Chave não existia e foi criada pela primeira vez	-	erro previsivel
 //		-2	-	Não foi possível criar a chave	-	erro crítico
 //		-3	-	Leitura de regedit falhada	-	erro crítico
 int readAeroLimits();
@@ -47,7 +75,7 @@ int readAeroLimits();
 //Função de Leitura do Máximo de Aviões
 //Retorna: Valor do máximo de Aviões aceites
 //Erros:
-//		-1	-	Chave não existia e foi criada pela primeira vez	-	usar valor default
+//		-1	-	Chave não existia e foi criada pela primeira vez	-	erro previsivel
 //		-2	-	Não foi possível criar a chave	-	erro crítico
 //		-3	-	Leitura de regedit falhada	-	erro crítico
 int readPlaneLimits();

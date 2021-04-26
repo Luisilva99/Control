@@ -108,7 +108,7 @@ int readAeroLimits() {
 	if (test_existance == ERROR_SUCCESS)
 	{
 		_tprintf(TEXT("\nLeitura no regedit bem sucedida!\n"));
-		_tprintf(TEXT("\nMáximo de Aeroportos permitidos criar: %s\n"), par_valor);
+		//_tprintf(TEXT("\nMáximo de Aeroportos permitidos criar: %s\n"), par_valor);
 	}
 	else
 	{
@@ -161,7 +161,7 @@ int readPlaneLimits() {
 	if (test_existance == ERROR_SUCCESS)
 	{
 		_tprintf(TEXT("\nLeitura no regedit bem sucedida!\n"));
-		_tprintf(TEXT("\nMáximo de Aviões permitidos no sistema: %s\n"), par_valor);
+		//_tprintf(TEXT("\nMáximo de Aviões permitidos no sistema: %s\n"), par_valor);
 	}
 	else
 	{
@@ -179,6 +179,9 @@ int createAeroLimits(int valor) {
 	LONG Ok_Key;
 	LONG test_existance;
 	DWORD tam_data;
+	TCHAR saveValor[TAM];
+
+	_stprintf_s(saveValor, TAM, TEXT("%d"), valor);
 
 	Ok_Key = RegOpenKeyExW(HKEY_CURRENT_USER, REG_SETTINGS_KEY, REG_OPTION_OPEN_LINK, KEY_READ | KEY_WRITE | KEY_SET_VALUE | KEY_QUERY_VALUE, &chave);
 
@@ -193,7 +196,7 @@ int createAeroLimits(int valor) {
 		return -1;
 	}
 
-	tam_data = sizeof(valor);
+	tam_data = _tcslen(saveValor) + 1;
 
 	test_existance = RegQueryValueEx(chave, SETTINGS_AERO, 0, NULL, (LPBYTE)valor, &tam_data);
 
@@ -201,7 +204,7 @@ int createAeroLimits(int valor) {
 	{
 		_tprintf(TEXT("\nLimite não existe, vai ser criado com este valor.\n"));
 
-		LONG add_value = RegSetValueEx(chave, SETTINGS_AERO, 0, REG_DWORD, (LPBYTE)valor, &tam_data);
+		LONG add_value = RegSetValueEx(chave, SETTINGS_AERO, 0, REG_SZ, (LPBYTE)saveValor, sizeof(saveValor));
 
 		if (add_value == ERROR_SUCCESS)
 		{
@@ -218,7 +221,7 @@ int createAeroLimits(int valor) {
 	{
 		_tprintf(TEXT("\nJá existe este limite vou atualizar.\n"));
 
-		LONG add_value = RegSetValueEx(chave, SETTINGS_AERO, 0, REG_DWORD, (LPBYTE)valor, &tam_data);
+		LONG add_value = RegSetValueEx(chave, SETTINGS_AERO, 0, REG_SZ, (LPBYTE)saveValor, sizeof(saveValor));
 
 		if (add_value == ERROR_SUCCESS)
 		{
@@ -241,6 +244,9 @@ int createPlaneLimits(int valor) {
 	LONG Ok_Key;
 	LONG test_existance;
 	DWORD tam_data;
+	TCHAR saveValor[TAM];
+
+	_stprintf_s(saveValor, TAM, TEXT("%d"), valor);
 
 	Ok_Key = RegOpenKeyExW(HKEY_CURRENT_USER, REG_SETTINGS_KEY, REG_OPTION_OPEN_LINK, KEY_READ | KEY_WRITE | KEY_SET_VALUE | KEY_QUERY_VALUE, &chave);
 
@@ -255,7 +261,7 @@ int createPlaneLimits(int valor) {
 		return -1;
 	}
 
-	tam_data = sizeof(valor);
+	tam_data = _tcslen(saveValor) + 1;
 
 	test_existance = RegQueryValueEx(chave, SETTINGS_PLANE, 0, NULL, (LPBYTE)valor, &tam_data);
 
@@ -263,7 +269,7 @@ int createPlaneLimits(int valor) {
 	{
 		_tprintf(TEXT("\nLimite não existe, vai ser criado com este valor.\n"));
 
-		LONG add_value = RegSetValueEx(chave, SETTINGS_PLANE, 0, REG_DWORD, (LPBYTE)valor, &tam_data);
+		LONG add_value = RegSetValueEx(chave, SETTINGS_PLANE, 0, REG_SZ, (LPBYTE)saveValor, sizeof(saveValor));
 
 		if (add_value == ERROR_SUCCESS)
 		{
@@ -280,7 +286,7 @@ int createPlaneLimits(int valor) {
 	{
 		_tprintf(TEXT("\nJá existe este limite vou atualizar.\n"));
 
-		LONG add_value = RegSetValueEx(chave, SETTINGS_PLANE, 0, REG_DWORD, (LPBYTE)valor, &tam_data);
+		LONG add_value = RegSetValueEx(chave, SETTINGS_PLANE, 0, REG_SZ, (LPBYTE)saveValor, sizeof(saveValor));
 
 		if (add_value == ERROR_SUCCESS)
 		{
