@@ -1,4 +1,10 @@
-#include "GeneralUse.h"
+#include <windows.h>
+#include <tchar.h>
+#include <math.h>
+#include <stdio.h>
+#include <fcntl.h>
+#include <io.h>
+#include "ControlUse.h"
 
 DWORD WINAPI MyThreadFunction(LPVOID lpParam);
 
@@ -16,27 +22,64 @@ int _tmain(int argc, TCHAR * argv[]) {
 	HANDLE hMapFile;
 	LPTSTR pBuf = NULL;
 
-	// limite superior
-	int limsup;
-
-	TCHAR *msg;
+	TCHAR *msg = NULL;
 
 	TCHAR szMsg[BUF_SIZE];
+
+	// limites
+	int maxPlane, maxAero, tipoErro;
 
 #ifdef UNICODE
 	_setmode(_fileno(stdin), _O_WTEXT);
 	_setmode(_fileno(stdout), _O_WTEXT);
+	_setmode(_fileno(stderr), _O_WTEXT);
 #endif
 
-	_tprintf(TEXT("\nLimite sup. -> "));
-	limsup = getIntInput();
+	//#######Tratamento de Argumentos#######//
 
-	_tprintf(TEXT("\nLimite sup.: %d\n"), limsup);
 
-	_tprintf(TEXT("\nFrase. -> "));
-	msg = getTCHARInput();
 
-	_tprintf(TEXT("\nFrase: %s\n\n"), msg);
+	//#######------------------------#######//
+
+	//#####Limites Registry#####//
+	//DEBUG - Necessita de ser melhorado ainda não funciona bem
+	if ((maxAero = readAeroLimits()) < 0) {
+		maxAero = MAX_AERO;
+
+		if ((tipoErro = createAeroLimits(MAX_AERO)) == 0)
+		{
+			_tprintf(TEXT("\nDefinição do limite de Aeroportos foi guardada no Sistema.\n"));
+		}
+		else
+		{
+			_tprintf(TEXT("\nErro crítico! - ERRO 1 - Tipo %d\n"), tipoErro);
+
+			return -1;
+		}
+	}
+
+	if ((maxPlane = readPlaneLimits()) < 0) {
+		maxPlane = MAX_PLANES;
+
+		if ((tipoErro = createPlaneLimits(MAX_PLANES)) == 0)
+		{
+			_tprintf(TEXT("\nDefinição do limite de Aviões foi guardada no Sistema.\n"));
+		}
+		else
+		{
+			_tprintf(TEXT("\nErro crítico! - ERRO 2 - Tipo %d\n"), tipoErro);
+
+			return -1;
+		}
+	}
+
+	_tprintf(TEXT("\nLimite máximo de aeroportos: %d\nLimite máximo de aviões: %d\n"), maxAero, maxPlane);
+
+	//#####----------------#####//
+
+	_gettch();
+
+	//#############Memória Partilhada#############//
 
 	hMapFile = CreateFileMapping(
 		INVALID_HANDLE_VALUE,    // use paging file
@@ -88,6 +131,8 @@ int _tmain(int argc, TCHAR * argv[]) {
 	}*/
 
 	CopyMemory((PVOID)pBuf, msg, (_tcslen(msg) * sizeof(TCHAR)));
+
+	//#############------------------#############//
 
 	_gettch();
 
