@@ -6,6 +6,7 @@
 #include <io.h>
 #include "ControlUse.h"
 
+
 DWORD WINAPI MyThreadFunction(LPVOID lpParam);
 
 // estrutura de dados para controlar as threads // Template
