@@ -19,7 +19,7 @@ typedef struct {
 
 int _tmain(int argc, TCHAR * argv[]) {
 
-	// memória partilhada
+	// Memória Partilhada
 	HANDLE hMapFile;
 	LPTSTR pBuf = NULL;
 
@@ -27,8 +27,11 @@ int _tmain(int argc, TCHAR * argv[]) {
 
 	TCHAR szMsg[BUF_SIZE];
 
-	// limites
+	// Limites e Erros
 	int maxPlane, maxAero, tipoErro;
+
+	// Sincronização
+	HANDLE semaphoreGate;
 
 #ifdef UNICODE
 	_setmode(_fileno(stdin), _O_WTEXT);
@@ -178,20 +181,35 @@ int _tmain(int argc, TCHAR * argv[]) {
 		return -1;
 	}
 
-	/*if ((pBuf = startMemory(&hMapFile, TEXT("CentralMemory"), BUF_SIZE)) == NULL) {
-		_tprintf(TEXT("\nErro ao iniciar a memória partilhada!\n"));
-
-		CloseHandle(hMapFile);
-		return -1;
-	}*/
-
 	//CopyMemory((PVOID)pBuf, msg, (_tcslen(msg) * sizeof(TCHAR)));
 
 	_tprintf(TEXT("\nMemória Partilhada criada com sucesso.\n"));
 
 	//#############------------------#############//
 
+	//#####Sincronismos#####//
+
+	semaphoreGate = CreateSemaphore(
+		NULL,
+		maxPlane,
+		maxPlane,
+		CONTROL_SEMAPHORE_ENTRY
+	);
+
+	if (semaphoreGate == NULL)
+	{
+		_tprintf(TEXT("\nCriação do semaforo de entrada de aviões não foi criado com sucesso!\nErro %d\n"), GetLastError());
+
+		return -1;
+	}
+
+	_tprintf(TEXT("\nCriação do semaforo de entrada de aviões foi criado com sucesso!\n"));
+
+	//#####------------#####//
+
 	_gettch();
+
+	CloseHandle(semaphoreGate);
 
 	UnmapViewOfFile(pBuf);
 

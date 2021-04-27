@@ -26,48 +26,6 @@ TCHAR *getTCHARInput() {
 	return szMsg;
 }
 
-LPTSTR startMemory(HANDLE * create, TCHAR * memoryName, DWORD memorySize) {
-	LPTSTR pBuf;
-
-	create = CreateFileMapping(
-		INVALID_HANDLE_VALUE,    // use paging file
-		NULL,                    // default security
-		PAGE_READWRITE,          // read/write access
-		0,                       // maximum object size (high-order DWORD)
-		memorySize,                // maximum object size (low-order DWORD)
-		memoryName);                 // name of mapping object
-
-
-	if (create == NULL)
-	{
-		_tprintf(TEXT("Could not create file mapping object (%d).\n"),
-			GetLastError());
-		return NULL;
-	}
-	else if (GetLastError() == ERROR_ALREADY_EXISTS)
-	{
-		_tprintf(TEXT("Já existe uma memória partilhada com este nome, vou abrir!.\n"));
-	}
-
-	pBuf = (LPTSTR)MapViewOfFile(create,   // handle to map object
-		FILE_MAP_ALL_ACCESS, // read/write permission
-		0,
-		0,
-		memorySize);
-
-	if (pBuf == NULL)
-	{
-		_tprintf(TEXT("Could not map view of file (%d).\n"),
-			GetLastError());
-
-		CloseHandle(create);
-
-		return NULL;
-	}
-
-	return pBuf;
-}
-
 int readAeroLimits() {
 	HKEY chave;
 	LONG Ok_Key;

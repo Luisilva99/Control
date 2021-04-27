@@ -29,7 +29,7 @@
 
 //Variáveis da Sincronização//
 #define CONTROL_MUTEX TEXT("Nome")
-#define CONTROL_SEMAPHORE_ENTRY TEXT("Nome")
+#define CONTROL_SEMAPHORE_ENTRY TEXT("PlaneGate")
 //--------------------------//
 
 //Estrutura Avião//
@@ -58,11 +58,6 @@ int getIntInput();
 //Função de Obtenção de frases
 //Retorna: Array de TCHAR
 TCHAR *getTCHARInput();
-
-//Função de Inicialização da Memória Partilhada
-//Recebe: Nome da memória partilhada, Tamanho da memória partilhada
-//Retorna: Ponteiro da Estrutura Partilhada
-LPTSTR startMemory(HANDLE * create, TCHAR * memoryName, DWORD memorySize);
 
 //Função de Leitura do Máximo de Aeroportos
 //Retorna: Valor do máximo de Aeroportos a ser criados
