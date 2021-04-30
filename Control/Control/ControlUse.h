@@ -17,6 +17,7 @@
 //Variáveis Futuras Memória//
 #define MAX_THREADS 20
 #define BUF_SIZE 256
+#define MAP_TAM 1000
 //-------------------------//
 
 //Variáveis do Registry//
@@ -50,6 +51,11 @@ typedef struct
 	int X;
 } MapUnit;
 //---------------------------//
+
+// Estrutura Template dos Dados do Control
+typedef struct {
+	MapUnit *map;
+} ControlData;
 
 //Função de Obtenção de inteiros
 //Retorna: Inteiro
@@ -90,5 +96,9 @@ int createAeroLimits(int valor);
 //		-2	-	Erro ao adicionar o limite	-	erro crítico
 //		-3	-	Erro ao atualizar o limite	-	erro crítico
 int createPlaneLimits(int valor);
+
+//Thread de Tratamento de Comandos
+//Recebe:	ControlData
+DWORD WINAPI tratamentoDeComandos(LPVOID lpParam);
 
 #endif

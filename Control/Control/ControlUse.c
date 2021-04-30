@@ -26,6 +26,7 @@ TCHAR *getTCHARInput() {
 	return szMsg;
 }
 
+
 int readAeroLimits() {
 	HKEY chave;
 	LONG Ok_Key;
@@ -260,3 +261,15 @@ int createPlaneLimits(int valor) {
 
 	return 0;
 }
+
+
+DWORD WINAPI tratamentoDeComandos(LPVOID lpParam)
+{
+	ControlData * pDataArray;
+	pDataArray = (ControlData*)lpParam;
+
+
+
+	return 0;
+}
+
