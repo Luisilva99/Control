@@ -36,8 +36,30 @@
 typedef struct
 {
 	int id;
+	int x, y;	//coordenadas
+	TCHAR a_chegada[TAM];	//aeroporto de chegada
+	TCHAR a_partida[TAM];	//aeroporto de partida
 } Plane;
 //---------------//
+
+//Estrutura do Controller
+
+typedef struct
+{
+	
+
+} Controller;
+
+//
+//Estrutura passageiros
+
+typedef struct
+{
+	int tempo;	//tempo de espera
+	TCHAR a_chegada[TAM];	//aeroporto de chegada
+	TCHAR a_partida[TAM];	//aeroporto de partida
+
+} Passag;
 
 //Estrutura da Célula do Mapa//
 typedef struct

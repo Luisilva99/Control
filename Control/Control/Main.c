@@ -157,7 +157,7 @@ int _tmain(int argc, TCHAR * argv[]) {
 
 		CloseHandle(hMapFile);
 
-		_gettch();
+		_gettch();		//programa fica a espera dum input, só avança quando for pressionado uma tecla
 
 		return -2;
 	}
@@ -199,6 +199,7 @@ int _tmain(int argc, TCHAR * argv[]) {
 
 	return 0;
 }
+
 
 
 
