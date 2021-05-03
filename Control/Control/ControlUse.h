@@ -43,15 +43,6 @@ typedef struct
 } Plane;
 //---------------//
 
-//Estrutura do Controller
-
-typedef struct
-{
-	
-
-} Controller;
-
-//
 //Estrutura passageiros
 
 typedef struct

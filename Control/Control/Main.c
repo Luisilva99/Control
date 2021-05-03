@@ -10,7 +10,7 @@
 
 int _tmain(int argc, TCHAR * argv[]) {
 
-	// Mem�ria Partilhada
+	// Memória Partilhada
 	HANDLE hMapFile;
 	LPTSTR pBuf = NULL;
 
@@ -135,17 +135,17 @@ int _tmain(int argc, TCHAR * argv[]) {
 
 	//#######------------------------#######//
 
-	_tprintf(TEXT("\nLimite m�ximo de aeroportos: %d\nLimite m�ximo de avi�es: %d\n"), maxAero, maxPlane);// DEBUG
+	_tprintf(TEXT("\nLimite m�ximo de aeroportos: %d\nLimite m�ximo de aviões: %d\n"), maxAero, maxPlane);// DEBUG
 
 	//###########Inicializa��o Padr�o dos Dados do Control###########//
 
 	control.map = malloc(maxAero * sizeof(MapUnit));
 
-	_tprintf(TEXT("\nInicializa��o da mem�ria f�sica do Control foi um Sucesso!\n"));// DEBUG
+	_tprintf(TEXT("\nInicializa��o da memória física do Control foi um Sucesso!\n"));// DEBUG
 
 	//###########-----------------------------------------###########//
 
-	//#############Mem�ria Partilhada#############//
+	//#############Memória Partilhada#############//
 
 	hMapFile = CreateFileMapping(
 		INVALID_HANDLE_VALUE,    // use paging file
@@ -191,7 +191,7 @@ int _tmain(int argc, TCHAR * argv[]) {
 
 	//CopyMemory((PVOID)pBuf, msg, (_tcslen(msg) * sizeof(TCHAR)));
 
-	_tprintf(TEXT("\nMem�ria Partilhada criada com sucesso.\n"));// DEBUG
+	_tprintf(TEXT("\nMemória Partilhada criada com sucesso.\n"));// DEBUG
 
 	//#############------------------#############//
 
@@ -206,12 +206,12 @@ int _tmain(int argc, TCHAR * argv[]) {
 
 	if (semaphoreGate == NULL)
 	{
-		_tprintf(TEXT("\nCria��o do semaforo de entrada de avi�es n�o foi criado com sucesso!\nErro %d\n"), GetLastError());
+		_tprintf(TEXT("\nCriação do semaforo de entrada de aviões não foi criado com sucesso!\nErro %d\n"), GetLastError());
 
 		return -1;
 	}
 
-	_tprintf(TEXT("\nCria��o do semaforo de entrada de avi�es foi criado com sucesso!\n"));// DEBUG
+	_tprintf(TEXT("\nCriação do semaforo de entrada de aviões foi criado com sucesso!\n"));// DEBUG
 
 	//#####------------#####//
 
@@ -232,25 +232,17 @@ int _tmain(int argc, TCHAR * argv[]) {
 		return -8;
 	}
 
-<<<<<<< HEAD
-
-DWORD WINAPI MyThreadFunction(LPVOID lpParam)
-{
-	TDados * pDataArray;
-	DWORD dwWaitResult;
-	BOOLEAN continuar = TRUE;
-
 	//######----------------------######//
 
 	WaitForSingleObject(hThread, INFINITE);
 
-	_tprintf(TEXT("\nLiberta��o das Threads criadas!\n"));
+	_tprintf(TEXT("\nLibertação das Threads criadas!\n"));
 
-	//########Liberta��o da Mem�ria Alocada########//
+	//########Libertação da Memória Alocada########//
 
 	free(control.map);
 
-	_tprintf(TEXT("\nLiberta��o da mem�ria f�sica do Control foi um Sucesso!\n"));// DEBUG
+	_tprintf(TEXT("\nLibertação da memória física do Control foi um Sucesso!\n"));// DEBUG
 
 	//########-----------------------------########//
 
@@ -258,50 +250,6 @@ DWORD WINAPI MyThreadFunction(LPVOID lpParam)
 
 	UnmapViewOfFile(pBuf);
 
-=======
-
-	_tprintf(TEXT("\nCria��o do semaforo de entrada de avi�es foi criado com sucesso!\n"));// DEBUG
-
-	//#####------------#####//
-
-	//######Lan�amento das Threads######//
-
-	hThread = CreateThread(
-		NULL,
-		0,
-		tratamentoDeComandos,
-		(LPVOID)&control,
-		0,
-		&dwThread
-	);
-
-	if (hThread == NULL)
-	{
-		_tprintf(TEXT("CreateThread failed, GLE=%d.\n"), GetLastError());
-		return -8;
-	}
-
-	_tprintf(TEXT("\nThread %d [Tratamento de Comandos] foi criada com sucesso!\n"), dwThread);
-
-	//######----------------------######//
-
-	WaitForSingleObject(hThread, INFINITE);
-
-	_tprintf(TEXT("\nLiberta��o das Threads criadas!\n"));
-
-	//########Liberta��o da Mem�ria Alocada########//
-
-	free(control.map);
-
-	_tprintf(TEXT("\nLiberta��o da mem�ria f�sica do Control foi um Sucesso!\n"));// DEBUG
-
-	//########-----------------------------########//
-
-	CloseHandle(semaphoreGate);
-
-	UnmapViewOfFile(pBuf);
-
->>>>>>> 06474a2cd09c330543731fcd72e267c9b3c8832e
 	CloseHandle(hMapFile);
 
 	return 0;
