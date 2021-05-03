@@ -7,19 +7,10 @@
 #include "ControlUse.h"
 
 
-DWORD WINAPI MyThreadFunction(LPVOID lpParam);
-
-// estrutura de dados para controlar as threads // Template
-typedef struct {
-	int start;
-	int end;
-	int *count;
-	HANDLE *mutex;
-} TDados;
 
 int _tmain(int argc, TCHAR * argv[]) {
 
-	// memória partilhada
+	// Memória Partilhada
 	HANDLE hMapFile;
 	LPTSTR pBuf = NULL;
 
@@ -27,8 +18,18 @@ int _tmain(int argc, TCHAR * argv[]) {
 
 	TCHAR szMsg[BUF_SIZE];
 
-	// limites
+	// Limites e Erros
 	int maxPlane, maxAero, tipoErro;
+
+	// Sincronização
+	HANDLE semaphoreGate;
+
+	// Threads
+	HANDLE hThread;
+	DWORD dwThread;
+
+	// Dados do Control
+	ControlData control;
 
 #ifdef UNICODE
 	_setmode(_fileno(stdin), _O_WTEXT);
@@ -72,6 +73,8 @@ int _tmain(int argc, TCHAR * argv[]) {
 
 	//#######Tratamento de Argumentos#######//
 
+	_tprintf(TEXT("\nNúmero de Argumentos: %d\n"), argc);
+
 	if (argv[1] != NULL)
 	{
 		if ((tipoErro = createAeroLimits(_tstoi(argv[1]))) == 0)
@@ -101,7 +104,7 @@ int _tmain(int argc, TCHAR * argv[]) {
 		}
 	}
 
-	if (argv[2] != NULL)
+	if (argv[2] != NULL && argc > 1)
 	{
 		if ((tipoErro = createPlaneLimits(_tstoi(argv[2]))) == 0)
 		{
@@ -132,7 +135,15 @@ int _tmain(int argc, TCHAR * argv[]) {
 
 	//#######------------------------#######//
 
-	_tprintf(TEXT("\nLimite máximo de aeroportos: %d\nLimite máximo de aviões: %d\n"), maxAero, maxPlane);
+	_tprintf(TEXT("\nLimite máximo de aeroportos: %d\nLimite máximo de aviões: %d\n"), maxAero, maxPlane);// DEBUG
+
+	//###########Inicialização Padrão dos Dados do Control###########//
+
+	control.map = malloc(maxAero * sizeof(MapUnit));
+
+	_tprintf(TEXT("\nInicialização da memória física do Control foi um Sucesso!\n"));// DEBUG
+
+	//###########-----------------------------------------###########//
 
 	//#############Memória Partilhada#############//
 
@@ -178,20 +189,75 @@ int _tmain(int argc, TCHAR * argv[]) {
 		return -1;
 	}
 
-	/*if ((pBuf = startMemory(&hMapFile, TEXT("CentralMemory"), BUF_SIZE)) == NULL) {
-		_tprintf(TEXT("\nErro ao iniciar a memória partilhada!\n"));
-
-		CloseHandle(hMapFile);
-		return -1;
-	}*/
-
 	//CopyMemory((PVOID)pBuf, msg, (_tcslen(msg) * sizeof(TCHAR)));
 
-	_tprintf(TEXT("\nMemória Partilhada criada com sucesso.\n"));
+	_tprintf(TEXT("\nMemória Partilhada criada com sucesso.\n"));// DEBUG
 
 	//#############------------------#############//
 
-	_gettch();
+	//#####Sincronismos#####//
+
+	semaphoreGate = CreateSemaphore(
+		NULL,
+		maxPlane,
+		maxPlane,
+		CONTROL_SEMAPHORE_ENTRY
+	);
+
+	if (semaphoreGate == NULL)
+	{
+		_tprintf(TEXT("\nCriação do semaforo de entrada de aviões não foi criado com sucesso!\nErro %d\n"), GetLastError());
+
+		return -1;
+	}
+
+	_tprintf(TEXT("\nCriação do semaforo de entrada de aviões foi criado com sucesso!\n"));// DEBUG
+
+	//#####------------#####//
+
+	//######Lançamento das Threads######//
+
+	hThread = CreateThread(
+		NULL,
+		0,
+		tratamentoDeComandos,
+		(LPVOID)&control,
+		0,
+		&dwThread
+	);
+
+	if (hThread == NULL)
+	{
+		_tprintf(TEXT("CreateThread failed, GLE=%d.\n"), GetLastError());
+		return -8;
+	}
+
+<<<<<<< HEAD
+
+DWORD WINAPI MyThreadFunction(LPVOID lpParam)
+{
+	TDados * pDataArray;
+	DWORD dwWaitResult;
+	BOOLEAN continuar = TRUE;
+=======
+	_tprintf(TEXT("\nThread %d [Tratamento de Comandos] foi criada com sucesso!\n"), dwThread);
+>>>>>>> 06474a2cd09c330543731fcd72e267c9b3c8832e
+
+	//######----------------------######//
+
+	WaitForSingleObject(hThread, INFINITE);
+
+	_tprintf(TEXT("\nLibertação das Threads criadas!\n"));
+
+	//########Libertação da Memória Alocada########//
+
+	free(control.map);
+
+	_tprintf(TEXT("\nLibertação da memória física do Control foi um Sucesso!\n"));// DEBUG
+
+	//########-----------------------------########//
+
+	CloseHandle(semaphoreGate);
 
 	UnmapViewOfFile(pBuf);
 
@@ -200,51 +266,5 @@ int _tmain(int argc, TCHAR * argv[]) {
 	return 0;
 }
 
-
-
-
-DWORD WINAPI MyThreadFunction(LPVOID lpParam)
-{
-	TDados * pDataArray;
-	DWORD dwWaitResult;
-	BOOLEAN continuar = TRUE;
-
-	pDataArray = (TDados*)lpParam;
-
-	for (int i = pDataArray->start; i < pDataArray->end; i++)
-	{
-
-
-		if (!(i % 3))
-		{
-
-			while (1)
-			{
-				dwWaitResult = WaitForSingleObject(
-					(*pDataArray->mutex),    // handle to mutex
-					INFINITE);  // no time-out interval
-
-				switch (dwWaitResult)
-				{
-					// The thread got ownership of the mutex
-				case WAIT_OBJECT_0:
-					(*pDataArray->count)++;
-					ReleaseMutex((*pDataArray->mutex));
-					break;
-
-				case WAIT_ABANDONED:
-					continue;
-
-				default:
-					continue;
-				}
-			}
-
-		}
-
-	}
-
-	return 0;
-}
 
 

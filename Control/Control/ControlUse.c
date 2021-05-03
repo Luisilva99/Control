@@ -26,47 +26,6 @@ TCHAR *getTCHARInput() {
 	return szMsg;
 }
 
-LPTSTR startMemory(HANDLE * create, TCHAR * memoryName, DWORD memorySize) {
-	LPTSTR pBuf;
-
-	create = CreateFileMapping(
-		INVALID_HANDLE_VALUE,    // use paging file
-		NULL,                    // default security
-		PAGE_READWRITE,          // read/write access
-		0,                       // maximum object size (high-order DWORD)
-		memorySize,                // maximum object size (low-order DWORD)
-		memoryName);                 // name of mapping object
-
-
-	if (create == NULL)
-	{
-		_tprintf(TEXT("Could not create file mapping object (%d).\n"),
-			GetLastError());
-		return NULL;
-	}
-	else if (GetLastError() == ERROR_ALREADY_EXISTS)
-	{
-		_tprintf(TEXT("Já existe uma memória partilhada com este nome, vou abrir!.\n"));
-	}
-
-	pBuf = (LPTSTR)MapViewOfFile(create,   // handle to map object
-		FILE_MAP_ALL_ACCESS, // read/write permission
-		0,
-		0,
-		memorySize);
-
-	if (pBuf == NULL)
-	{
-		_tprintf(TEXT("Could not map view of file (%d).\n"),
-			GetLastError());
-
-		CloseHandle(create);
-
-		return NULL;
-	}
-
-	return pBuf;
-}
 
 int readAeroLimits() {
 	HKEY chave;
@@ -302,3 +261,88 @@ int createPlaneLimits(int valor) {
 
 	return 0;
 }
+
+
+int comandSwitcher(ControlData * control, TCHAR * comand) {
+	TCHAR * auxA;
+	TCHAR * auxB = _tcstok_s(comand, TEXT(" "), &auxA);
+
+	if (auxB == NULL)
+	{
+		return 0;
+	}
+
+	//####Comandos####//
+
+	if (_tcscmp(auxB, TEXT("help")) == 0)
+	{
+		_tprintf(TEXT("\nComandos:\n\n"));
+		_tprintf(TEXT("\nhelp - Lista de comandos.\n"));
+		_tprintf(TEXT("\ninPlane stop/start - Abrir e fechar a aceitação de novos aviões.\n"));
+		_tprintf(TEXT("\ninPass stop/start - Abrir e fechar a aceitação de novos passageiros.\n"));
+		_tprintf(TEXT("\nexit - Terminar Sistema.\n"));
+
+		return 1;
+	}
+	else if(_tcscmp(auxB, TEXT("inPlane")) == 0)
+	{
+		if ((auxB = _tcstok_s(NULL, TEXT(" "), &auxA)) != NULL)
+		{
+			if (_tcscmp(auxB, TEXT("start")) == 0)
+			{
+				_tprintf(TEXT("\nAviões são permitidos entrar no Sistema.\n"));
+				return 1;
+			}
+			else if (_tcscmp(auxB, TEXT("stop")) == 0)
+			{
+				_tprintf(TEXT("\nAviões não são permitidos entrar no Sistema.\n"));
+				return 1;
+			}
+		}
+
+		return 0;
+	}
+	else if(_tcscmp(auxB, TEXT("inPass")) == 0)
+	{
+		if ((auxB = _tcstok_s(NULL, TEXT(" "), &auxA)) != NULL)
+		{
+			if (_tcscmp(auxB, TEXT("start")) == 0)
+			{
+				_tprintf(TEXT("\nPassageiros são permitidos entrar no Sistema.\n"));
+				return 1;
+			}
+			else if (_tcscmp(auxB, TEXT("stop")) == 0)
+			{
+				_tprintf(TEXT("\nPassageiros não são permitidos entrar no Sistema.\n"));
+				return 1;
+			}
+		}
+
+		return 0;
+	}
+
+	//####--------####//
+
+	return 0;
+}
+
+
+DWORD WINAPI tratamentoDeComandos(LPVOID lpParam)
+{
+	ControlData * pDataArray;
+	pDataArray = (ControlData*)lpParam;
+
+	TCHAR *comando;
+
+	_tprintf(TEXT("\nhelp - Lista de comandos.\n\n"));
+
+	do
+	{
+		_tprintf(TEXT("\n> "));
+		comando = getTCHARInput();
+		comandSwitcher(pDataArray, comando) ? _tprintf(TEXT("")) : _tprintf(TEXT("\nComando Incorreto.\n"));
+	} while (_tcscmp(comando, TEXT("exit")));
+
+	return 0;
+}
+
