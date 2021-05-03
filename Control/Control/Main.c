@@ -217,11 +217,28 @@ int _tmain(int argc, TCHAR * argv[]) {
 
 	//######Lançamento das Threads######//
 
+	hThread = CreateThread(
+		NULL,
+		0,
+		tratamentoDeComandos,
+		(LPVOID)&control,
+		0,
+		&dwThread
+	);
 
+	if (hThread == NULL)
+	{
+		_tprintf(TEXT("CreateThread failed, GLE=%d.\n"), GetLastError());
+		return -8;
+	}
+
+	_tprintf(TEXT("\nThread %d [Tratamento de Comandos] foi criada com sucesso!\n"), dwThread);
 
 	//######----------------------######//
 
-	_gettch();
+	WaitForSingleObject(hThread, INFINITE);
+
+	_tprintf(TEXT("\nLibertação das Threads criadas!\n"));
 
 	//########Libertação da Memória Alocada########//
 

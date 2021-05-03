@@ -58,15 +58,18 @@ typedef struct {
 } ControlData;
 
 //Função de Obtenção de inteiros
-//Retorna: Inteiro
+//Retorna:
+//		Inteiro
 int getIntInput();
 
 //Função de Obtenção de frases
-//Retorna: Array de TCHAR
+//Retorna:
+//		Array de TCHAR
 TCHAR *getTCHARInput();
 
 //Função de Leitura do Máximo de Aeroportos
-//Retorna: Valor do máximo de Aeroportos a ser criados
+//Retorna:
+//		Valor do máximo de Aeroportos a ser criados
 //Erros:
 //		-1	-	Chave não existia e foi criada pela primeira vez	-	erro previsivel
 //		-2	-	Não foi possível criar a chave	-	erro crítico
@@ -74,7 +77,8 @@ TCHAR *getTCHARInput();
 int readAeroLimits();
 
 //Função de Leitura do Máximo de Aviões
-//Retorna: Valor do máximo de Aviões aceites
+//Retorna:
+//		Valor do máximo de Aviões aceites
 //Erros:
 //		-1	-	Chave não existia e foi criada pela primeira vez	-	erro previsivel
 //		-2	-	Não foi possível criar a chave	-	erro crítico
@@ -82,7 +86,10 @@ int readAeroLimits();
 int readPlaneLimits();
 
 //Função de Definição do Máximo de Aeroportos
-//Retorna: 0	-	Valor de sucesso
+//Recebe:
+//		valor	-	número máximo de aeroportos a atualizar
+//Retorna:
+//		0	-	Valor de sucesso
 //Erros:
 //		-1	-	Chave não existe	-	erro crítico
 //		-2	-	Erro ao adicionar o limite	-	erro crítico
@@ -90,7 +97,10 @@ int readPlaneLimits();
 int createAeroLimits(int valor);
 
 //Função de Definição do Máximo de Aviões
-//Retorna: 0	-	Valor de sucesso
+//Recebe:
+//		valor	-	número máximo de aviões a atualizar
+//Retorna:
+//		0	-	Valor de sucesso
 //Erros:
 //		-1	-	Chave não existe	-	erro crítico
 //		-2	-	Erro ao adicionar o limite	-	erro crítico
@@ -98,7 +108,17 @@ int createAeroLimits(int valor);
 int createPlaneLimits(int valor);
 
 //Thread de Tratamento de Comandos
-//Recebe:	ControlData
+//Recebe:
+//		lpParam	-	Dados do Control
 DWORD WINAPI tratamentoDeComandos(LPVOID lpParam);
+
+//Função de Tratamento de Comandos do Control
+//Recebe:
+//		control	-	Dados do Control
+//		comand	-	Comando introduzido pelo utilizador para Tratamento
+//Retorna:
+//		0	-	Comando sem espaços -> temporário
+//		1	-	Comando foi tratado
+int comandSwitcher(ControlData * control, TCHAR * comand);
 
 #endif
