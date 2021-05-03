@@ -10,7 +10,7 @@
 
 int _tmain(int argc, TCHAR * argv[]) {
 
-	// Memória Partilhada
+	// Memï¿½ria Partilhada
 	HANDLE hMapFile;
 	LPTSTR pBuf = NULL;
 
@@ -21,7 +21,7 @@ int _tmain(int argc, TCHAR * argv[]) {
 	// Limites e Erros
 	int maxPlane, maxAero, tipoErro;
 
-	// Sincronização
+	// Sincronizaï¿½ï¿½o
 	HANDLE semaphoreGate;
 
 	// Threads
@@ -44,11 +44,11 @@ int _tmain(int argc, TCHAR * argv[]) {
 
 		if ((tipoErro = createAeroLimits(MAX_AERO)) == 0)
 		{
-			_tprintf(TEXT("\nDefinição do limite de Aeroportos foi guardada no Sistema.\n"));
+			_tprintf(TEXT("\nDefiniï¿½ï¿½o do limite de Aeroportos foi guardada no Sistema.\n"));
 		}
 		else
 		{
-			_tprintf(TEXT("\nErro crítico! - ERRO 1 - Tipo %d\n"), tipoErro);
+			_tprintf(TEXT("\nErro crï¿½tico! - ERRO 1 - Tipo %d\n"), tipoErro);
 
 			return -1;
 		}
@@ -59,11 +59,11 @@ int _tmain(int argc, TCHAR * argv[]) {
 
 		if ((tipoErro = createPlaneLimits(MAX_PLANES)) == 0)
 		{
-			_tprintf(TEXT("\nDefinição do limite de Aviões foi guardada no Sistema.\n"));
+			_tprintf(TEXT("\nDefiniï¿½ï¿½o do limite de Aviï¿½es foi guardada no Sistema.\n"));
 		}
 		else
 		{
-			_tprintf(TEXT("\nErro crítico! - ERRO 2 - Tipo %d\n"), tipoErro);
+			_tprintf(TEXT("\nErro crï¿½tico! - ERRO 2 - Tipo %d\n"), tipoErro);
 
 			return -1;
 		}
@@ -73,30 +73,30 @@ int _tmain(int argc, TCHAR * argv[]) {
 
 	//#######Tratamento de Argumentos#######//
 
-	_tprintf(TEXT("\nNúmero de Argumentos: %d\n"), argc);
+	_tprintf(TEXT("\nNï¿½mero de Argumentos: %d\n"), argc);
 
 	if (argv[1] != NULL)
 	{
 		if ((tipoErro = createAeroLimits(_tstoi(argv[1]))) == 0)
 		{
-			_tprintf(TEXT("\nDefinição do limite de Aeroportos foi guardada no Sistema.\n"));
+			_tprintf(TEXT("\nDefiniï¿½ï¿½o do limite de Aeroportos foi guardada no Sistema.\n"));
 
 			maxAero = _tstoi(argv[1]);
 		}
 		else
 		{
-			_tprintf(TEXT("\nErro crítico! - ERRO 1 - Tipo %d\nUsar valores de Sistema.\n"), tipoErro);
+			_tprintf(TEXT("\nErro crï¿½tico! - ERRO 1 - Tipo %d\nUsar valores de Sistema.\n"), tipoErro);
 
 			if ((maxAero = readAeroLimits()) < 0) {
 				maxAero = MAX_AERO;
 
 				if ((tipoErro = createAeroLimits(MAX_AERO)) == 0)
 				{
-					_tprintf(TEXT("\nDefinição do limite de Aeroportos foi guardada no Sistema.\n"));
+					_tprintf(TEXT("\nDefiniï¿½ï¿½o do limite de Aeroportos foi guardada no Sistema.\n"));
 				}
 				else
 				{
-					_tprintf(TEXT("\nErro crítico! - ERRO 1 - Tipo %d\n"), tipoErro);
+					_tprintf(TEXT("\nErro crï¿½tico! - ERRO 1 - Tipo %d\n"), tipoErro);
 
 					return -1;
 				}
@@ -108,24 +108,24 @@ int _tmain(int argc, TCHAR * argv[]) {
 	{
 		if ((tipoErro = createPlaneLimits(_tstoi(argv[2]))) == 0)
 		{
-			_tprintf(TEXT("\nDefinição do limite de Aviões foi guardada no Sistema.\n"));
+			_tprintf(TEXT("\nDefiniï¿½ï¿½o do limite de Aviï¿½es foi guardada no Sistema.\n"));
 
 			maxPlane = _tstoi(argv[2]);
 		}
 		else
 		{
-			_tprintf(TEXT("\nErro crítico! - ERRO 2 - Tipo %d\nUsar valores de Sistema.\n"), tipoErro);
+			_tprintf(TEXT("\nErro crï¿½tico! - ERRO 2 - Tipo %d\nUsar valores de Sistema.\n"), tipoErro);
 
 			if ((maxPlane = readPlaneLimits()) < 0) {
 				maxPlane = MAX_PLANES;
 
 				if ((tipoErro = createPlaneLimits(MAX_PLANES)) == 0)
 				{
-					_tprintf(TEXT("\nDefinição do limite de Aviões foi guardada no Sistema.\n"));
+					_tprintf(TEXT("\nDefiniï¿½ï¿½o do limite de Aviï¿½es foi guardada no Sistema.\n"));
 				}
 				else
 				{
-					_tprintf(TEXT("\nErro crítico! - ERRO 2 - Tipo %d\n"), tipoErro);
+					_tprintf(TEXT("\nErro crï¿½tico! - ERRO 2 - Tipo %d\n"), tipoErro);
 
 					return -1;
 				}
@@ -135,17 +135,17 @@ int _tmain(int argc, TCHAR * argv[]) {
 
 	//#######------------------------#######//
 
-	_tprintf(TEXT("\nLimite máximo de aeroportos: %d\nLimite máximo de aviões: %d\n"), maxAero, maxPlane);// DEBUG
+	_tprintf(TEXT("\nLimite mï¿½ximo de aeroportos: %d\nLimite mï¿½ximo de aviï¿½es: %d\n"), maxAero, maxPlane);// DEBUG
 
-	//###########Inicialização Padrão dos Dados do Control###########//
+	//###########Inicializaï¿½ï¿½o Padrï¿½o dos Dados do Control###########//
 
 	control.map = malloc(maxAero * sizeof(MapUnit));
 
-	_tprintf(TEXT("\nInicialização da memória física do Control foi um Sucesso!\n"));// DEBUG
+	_tprintf(TEXT("\nInicializaï¿½ï¿½o da memï¿½ria fï¿½sica do Control foi um Sucesso!\n"));// DEBUG
 
 	//###########-----------------------------------------###########//
 
-	//#############Memória Partilhada#############//
+	//#############Memï¿½ria Partilhada#############//
 
 	hMapFile = CreateFileMapping(
 		INVALID_HANDLE_VALUE,    // use paging file
@@ -164,11 +164,11 @@ int _tmain(int argc, TCHAR * argv[]) {
 	}
 	else if (GetLastError() == ERROR_ALREADY_EXISTS)
 	{
-		_tprintf(TEXT("Já existe uma execução em curso.\nVou encerrar!\n"));
+		_tprintf(TEXT("Jï¿½ existe uma execuï¿½ï¿½o em curso.\nVou encerrar!\n"));
 
 		CloseHandle(hMapFile);
 
-		_gettch();		//programa fica a espera dum input, só avança quando for pressionado uma tecla
+		_gettch();		//programa fica a espera dum input, sï¿½ avanï¿½a quando for pressionado uma tecla
 
 		return -2;
 	}
@@ -191,7 +191,7 @@ int _tmain(int argc, TCHAR * argv[]) {
 
 	//CopyMemory((PVOID)pBuf, msg, (_tcslen(msg) * sizeof(TCHAR)));
 
-	_tprintf(TEXT("\nMemória Partilhada criada com sucesso.\n"));// DEBUG
+	_tprintf(TEXT("\nMemï¿½ria Partilhada criada com sucesso.\n"));// DEBUG
 
 	//#############------------------#############//
 
@@ -206,16 +206,16 @@ int _tmain(int argc, TCHAR * argv[]) {
 
 	if (semaphoreGate == NULL)
 	{
-		_tprintf(TEXT("\nCriação do semaforo de entrada de aviões não foi criado com sucesso!\nErro %d\n"), GetLastError());
+		_tprintf(TEXT("\nCriaï¿½ï¿½o do semaforo de entrada de aviï¿½es nï¿½o foi criado com sucesso!\nErro %d\n"), GetLastError());
 
 		return -1;
 	}
 
-	_tprintf(TEXT("\nCriação do semaforo de entrada de aviões foi criado com sucesso!\n"));// DEBUG
+	_tprintf(TEXT("\nCriaï¿½ï¿½o do semaforo de entrada de aviï¿½es foi criado com sucesso!\n"));// DEBUG
 
 	//#####------------#####//
 
-	//######Lançamento das Threads######//
+	//######Lanï¿½amento das Threads######//
 
 	hThread = CreateThread(
 		NULL,
@@ -239,21 +239,18 @@ DWORD WINAPI MyThreadFunction(LPVOID lpParam)
 	TDados * pDataArray;
 	DWORD dwWaitResult;
 	BOOLEAN continuar = TRUE;
-=======
-	_tprintf(TEXT("\nThread %d [Tratamento de Comandos] foi criada com sucesso!\n"), dwThread);
->>>>>>> 06474a2cd09c330543731fcd72e267c9b3c8832e
 
 	//######----------------------######//
 
 	WaitForSingleObject(hThread, INFINITE);
 
-	_tprintf(TEXT("\nLibertação das Threads criadas!\n"));
+	_tprintf(TEXT("\nLibertaï¿½ï¿½o das Threads criadas!\n"));
 
-	//########Libertação da Memória Alocada########//
+	//########Libertaï¿½ï¿½o da Memï¿½ria Alocada########//
 
 	free(control.map);
 
-	_tprintf(TEXT("\nLibertação da memória física do Control foi um Sucesso!\n"));// DEBUG
+	_tprintf(TEXT("\nLibertaï¿½ï¿½o da memï¿½ria fï¿½sica do Control foi um Sucesso!\n"));// DEBUG
 
 	//########-----------------------------########//
 
@@ -261,10 +258,51 @@ DWORD WINAPI MyThreadFunction(LPVOID lpParam)
 
 	UnmapViewOfFile(pBuf);
 
+=======
+
+	_tprintf(TEXT("\nCriaï¿½ï¿½o do semaforo de entrada de aviï¿½es foi criado com sucesso!\n"));// DEBUG
+
+	//#####------------#####//
+
+	//######Lanï¿½amento das Threads######//
+
+	hThread = CreateThread(
+		NULL,
+		0,
+		tratamentoDeComandos,
+		(LPVOID)&control,
+		0,
+		&dwThread
+	);
+
+	if (hThread == NULL)
+	{
+		_tprintf(TEXT("CreateThread failed, GLE=%d.\n"), GetLastError());
+		return -8;
+	}
+
+	_tprintf(TEXT("\nThread %d [Tratamento de Comandos] foi criada com sucesso!\n"), dwThread);
+
+	//######----------------------######//
+
+	WaitForSingleObject(hThread, INFINITE);
+
+	_tprintf(TEXT("\nLibertaï¿½ï¿½o das Threads criadas!\n"));
+
+	//########Libertaï¿½ï¿½o da Memï¿½ria Alocada########//
+
+	free(control.map);
+
+	_tprintf(TEXT("\nLibertaï¿½ï¿½o da memï¿½ria fï¿½sica do Control foi um Sucesso!\n"));// DEBUG
+
+	//########-----------------------------########//
+
+	CloseHandle(semaphoreGate);
+
+	UnmapViewOfFile(pBuf);
+
+>>>>>>> 06474a2cd09c330543731fcd72e267c9b3c8832e
 	CloseHandle(hMapFile);
 
 	return 0;
 }
-
-
-
