@@ -44,11 +44,11 @@ int _tmain(int argc, TCHAR * argv[]) {
 
 		if ((tipoErro = createAeroLimits(MAX_AERO)) == 0)
 		{
-			_tprintf(TEXT("\nDefini��o do limite de Aeroportos foi guardada no Sistema.\n"));
+			_tprintf(TEXT("\nDefinição do limite de Aeroportos foi guardada no Sistema.\n"));
 		}
 		else
 		{
-			_tprintf(TEXT("\nErro cr�tico! - ERRO 1 - Tipo %d\n"), tipoErro);
+			_tprintf(TEXT("\nErro crítico! - ERRO 1 - Tipo %d\n"), tipoErro);
 
 			return -1;
 		}
@@ -59,11 +59,11 @@ int _tmain(int argc, TCHAR * argv[]) {
 
 		if ((tipoErro = createPlaneLimits(MAX_PLANES)) == 0)
 		{
-			_tprintf(TEXT("\nDefini��o do limite de Avi�es foi guardada no Sistema.\n"));
+			_tprintf(TEXT("\nDefinição do limite de Aviões foi guardada no Sistema.\n"));
 		}
 		else
 		{
-			_tprintf(TEXT("\nErro cr�tico! - ERRO 2 - Tipo %d\n"), tipoErro);
+			_tprintf(TEXT("\nErro crítico! - ERRO 2 - Tipo %d\n"), tipoErro);
 
 			return -1;
 		}
@@ -73,30 +73,30 @@ int _tmain(int argc, TCHAR * argv[]) {
 
 	//#######Tratamento de Argumentos#######//
 
-	_tprintf(TEXT("\nN�mero de Argumentos: %d\n"), argc);
+	_tprintf(TEXT("\nNúmero de Argumentos: %d\n"), argc);
 
 	if (argv[1] != NULL)
 	{
 		if ((tipoErro = createAeroLimits(_tstoi(argv[1]))) == 0)
 		{
-			_tprintf(TEXT("\nDefini��o do limite de Aeroportos foi guardada no Sistema.\n"));
+			_tprintf(TEXT("\nDefinição do limite de Aeroportos foi guardada no Sistema.\n"));
 
 			maxAero = _tstoi(argv[1]);
 		}
 		else
 		{
-			_tprintf(TEXT("\nErro cr�tico! - ERRO 1 - Tipo %d\nUsar valores de Sistema.\n"), tipoErro);
+			_tprintf(TEXT("\nErro crítico! - ERRO 1 - Tipo %d\nUsar valores de Sistema.\n"), tipoErro);
 
 			if ((maxAero = readAeroLimits()) < 0) {
 				maxAero = MAX_AERO;
 
 				if ((tipoErro = createAeroLimits(MAX_AERO)) == 0)
 				{
-					_tprintf(TEXT("\nDefini��o do limite de Aeroportos foi guardada no Sistema.\n"));
+					_tprintf(TEXT("\nDefinição do limite de Aeroportos foi guardada no Sistema.\n"));
 				}
 				else
 				{
-					_tprintf(TEXT("\nErro cr�tico! - ERRO 1 - Tipo %d\n"), tipoErro);
+					_tprintf(TEXT("\nErro crítico! - ERRO 1 - Tipo %d\n"), tipoErro);
 
 					return -1;
 				}
@@ -108,24 +108,24 @@ int _tmain(int argc, TCHAR * argv[]) {
 	{
 		if ((tipoErro = createPlaneLimits(_tstoi(argv[2]))) == 0)
 		{
-			_tprintf(TEXT("\nDefini��o do limite de Avi�es foi guardada no Sistema.\n"));
+			_tprintf(TEXT("\nDefinição do limite de Aviões foi guardada no Sistema.\n"));
 
 			maxPlane = _tstoi(argv[2]);
 		}
 		else
 		{
-			_tprintf(TEXT("\nErro cr�tico! - ERRO 2 - Tipo %d\nUsar valores de Sistema.\n"), tipoErro);
+			_tprintf(TEXT("\nErro crítico! - ERRO 2 - Tipo %d\nUsar valores de Sistema.\n"), tipoErro);
 
 			if ((maxPlane = readPlaneLimits()) < 0) {
 				maxPlane = MAX_PLANES;
 
 				if ((tipoErro = createPlaneLimits(MAX_PLANES)) == 0)
 				{
-					_tprintf(TEXT("\nDefini��o do limite de Avi�es foi guardada no Sistema.\n"));
+					_tprintf(TEXT("\nDefinição do limite de Aviões foi guardada no Sistema.\n"));
 				}
 				else
 				{
-					_tprintf(TEXT("\nErro cr�tico! - ERRO 2 - Tipo %d\n"), tipoErro);
+					_tprintf(TEXT("\nErro crítico! - ERRO 2 - Tipo %d\n"), tipoErro);
 
 					return -1;
 				}
@@ -135,7 +135,7 @@ int _tmain(int argc, TCHAR * argv[]) {
 
 	//#######------------------------#######//
 
-	_tprintf(TEXT("\nLimite m�ximo de aeroportos: %d\nLimite m�ximo de aviões: %d\n"), maxAero, maxPlane);// DEBUG
+	_tprintf(TEXT("\nLimite máximo de aeroportos: %d\nLimite máximo de aviões: %d\n"), maxAero, maxPlane);// DEBUG
 
 	//###########Inicializa��o Padr�o dos Dados do Control###########//
 
@@ -164,7 +164,7 @@ int _tmain(int argc, TCHAR * argv[]) {
 	}
 	else if (GetLastError() == ERROR_ALREADY_EXISTS)
 	{
-		_tprintf(TEXT("J� existe uma execu��o em curso.\nVou encerrar!\n"));
+		_tprintf(TEXT("Já existe uma execu��o em curso.\nVou encerrar!\n"));
 
 		CloseHandle(hMapFile);
 
@@ -215,7 +215,7 @@ int _tmain(int argc, TCHAR * argv[]) {
 
 	//#####------------#####//
 
-	//######Lan�amento das Threads######//
+	//######Lançamento das Threads######//
 
 	hThread = CreateThread(
 		NULL,

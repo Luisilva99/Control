@@ -65,10 +65,16 @@ int _tmain(int argc, TCHAR * argv[]) {
 
 	//##Entrada no Control##//
 
+	// Mutex de flag de aceitação no sistema
+	//-----------------WaitForSingleObject
+
 	// Modificar para ciclo de espera
 	WaitForSingleObject(semaphoreGate, INFINITE);
 
 	_tprintf(TEXT("\nEntrada com sucesso em Control!\n"));
+
+	// Mutex Release
+	//-------------
 
 	//##------------------##//
 

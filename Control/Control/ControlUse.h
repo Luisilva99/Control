@@ -9,6 +9,19 @@
 #include <io.h>
 #include <winreg.h>
 
+
+//Dúvidas//
+//	Passageiros só podem entrar assim que os aeroportos estiverem definidos?
+//
+//	Os aeroportos podem ser criados a meio da execução (quando aviões já estão em funcionamento / passageiros já se encontram abordo dos aviões)?
+//
+//	Podemos fazer malloc em arrays para passar para a memória partilhada?
+//
+//	O que é consumido é as mensagens entre os Aviões e o Control?
+//
+//-------//
+
+
 //Variáveis de Input//
 #define TAM 100
 #define TAM_INPUT 500
@@ -26,12 +39,23 @@
 #define MAX_PLANES 5
 #define SETTINGS_AERO TEXT("maxAero")
 #define MAX_AERO 5
+#define MAX_PASS 5
 //---------------------//
 
 //Variáveis da Sincronização//
 #define CONTROL_MUTEX TEXT("Nome")
 #define CONTROL_SEMAPHORE_ENTRY TEXT("PlaneGate")
 //--------------------------//
+
+//Estrutura passageiros
+
+typedef struct
+{
+	int tempo;	//tempo de espera / opcional
+	TCHAR a_chegada[TAM];	//aeroporto de chegada
+	TCHAR a_partida[TAM];	//aeroporto de partida
+
+} Passag;
 
 //Estrutura Avião//
 typedef struct
@@ -40,34 +64,41 @@ typedef struct
 	int x, y;	//coordenadas
 	TCHAR a_chegada[TAM];	//aeroporto de chegada
 	TCHAR a_partida[TAM];	//aeroporto de partida
+	Passag pass[MAX_PASS];	//max passageiros
 } Plane;
 //---------------//
-
-//Estrutura passageiros
-
-typedef struct
-{
-	int tempo;	//tempo de espera
-	TCHAR a_chegada[TAM];	//aeroporto de chegada
-	TCHAR a_partida[TAM];	//aeroporto de partida
-
-} Passag;
 
 //Estrutura da Célula do Mapa//
 typedef struct
 {
+	//Restruturar esta estrutura
 	int isAero;
-	Plane seaPlane;
 	Plane hangar[MAX_PLANES];
+	Passag passageiros[MAX_PASS];	//Passageiros em espera
 	TCHAR aeroName[TAM_INPUT];
 	int Y;
 	int X;
 } MapUnit;
 //---------------------------//
 
+//Estrutura da Memória Partilhada//
+typedef struct
+{
+	Plane planes[MAX_PLANES * 3];	//Aviões
+	MapUnit aeros[MAX_AERO * 3];	//Aeroportos
+	int maxAero, maxPlane;			//Máximo de Aviões e Aeroportos nos Arrays
+	TCHAR msg[TAM_INPUT];			//Menssagens trocadas entre o Control e o Aviao
+} SharedMemory;
+//-------------------------------//
+
 // Estrutura Template dos Dados do Control
 typedef struct {
-	MapUnit *map;
+	MapUnit *map;				//Aeroportos
+	int maxAero, curAero;		//Máximo de Aeroportos e tamanho atual
+	Passag maxPass[MAX_PASS];	//Passageiros
+	Plane *planes;				//Aviões
+	int maxPlane, curPlane;		//Máximo de Aviões e tamanho atual
+	SharedMemory memory;		//Memória Partilhada
 } ControlData;
 
 //Função de Obtenção de inteiros
