@@ -19,6 +19,9 @@
 //
 //	O que é consumido é as mensagens entre os Aviões e o Control?
 //
+//	Posso utilizar ponteiros na memória partilhada que apenas se referem ao inicio do meu array físico do Control para apenas visualizar a informação nos outros processos?
+//	E se fizer isto, consigo apenas ter que modificar o array físico e o ponteiro continua a apontar corretamente para este array?
+//
 //-------//
 
 
@@ -47,24 +50,24 @@
 #define CONTROL_SEMAPHORE_ENTRY TEXT("PlaneGate")
 //--------------------------//
 
-//Estrutura passageiros
-
+//Estrutura passageiros//
 typedef struct
 {
-	int tempo;	//tempo de espera / opcional
+	int tempo;				//tempo de espera / ao fim deste tempo o passageiro vai se embora
 	TCHAR a_chegada[TAM];	//aeroporto de chegada
 	TCHAR a_partida[TAM];	//aeroporto de partida
-
 } Passag;
+//---------------------//
 
 //Estrutura Avião//
 typedef struct
 {
-	int id;
-	int x, y;	//coordenadas
+	int id;					//id do avião
+	int x, y;				//coordenadas
 	TCHAR a_chegada[TAM];	//aeroporto de chegada
 	TCHAR a_partida[TAM];	//aeroporto de partida
 	Passag pass[MAX_PASS];	//max passageiros
+	int velocidade;			//velocidade do avião
 } Plane;
 //---------------//
 
@@ -72,12 +75,11 @@ typedef struct
 typedef struct
 {
 	//Restruturar esta estrutura
-	int isAero;
-	Plane hangar[MAX_PLANES];
+	int isAero;						//Se é Aeroporto ou não -> modificar esta estrutura
+	Plane hangar[MAX_PLANES];		//Aviões dentro do Aeroporto
 	Passag passageiros[MAX_PASS];	//Passageiros em espera
-	TCHAR aeroName[TAM_INPUT];
-	int Y;
-	int X;
+	TCHAR aeroName[TAM_INPUT];		//Nome do Aeroporto
+	int Y, X;						//Coordenadas do Aeroporto no Mapa
 } MapUnit;
 //---------------------------//
 
@@ -95,9 +97,9 @@ typedef struct
 typedef struct {
 	MapUnit *map;				//Aeroportos
 	int maxAero, curAero;		//Máximo de Aeroportos e tamanho atual
-	Passag maxPass[MAX_PASS];	//Passageiros
 	Plane *planes;				//Aviões
 	int maxPlane, curPlane;		//Máximo de Aviões e tamanho atual
+	Passag maxPass[MAX_PASS];	//Passageiros
 	SharedMemory memory;		//Memória Partilhada
 } ControlData;
 
