@@ -11,16 +11,32 @@
 
 
 //Dúvidas//
-//	Passageiros só podem entrar assim que os aeroportos estiverem definidos?
+//	Q: Passageiros só podem entrar assim que os aeroportos estiverem definidos?
 //
-//	Os aeroportos podem ser criados a meio da execução (quando aviões já estão em funcionamento / passageiros já se encontram abordo dos aviões)?
+//	R: ------------------------------------------------------------------------------------------------------------------------------------------
 //
-//	Podemos fazer malloc em arrays para passar para a memória partilhada?
 //
-//	O que é consumido é as mensagens entre os Aviões e o Control?
+//	Q: Os aeroportos podem ser criados a meio da execução (quando aviões já estão em funcionamento / passageiros já se encontram abordo dos aviões)?
 //
-//	Posso utilizar ponteiros na memória partilhada que apenas se referem ao inicio do meu array físico do Control para apenas visualizar a informação nos outros processos?
-//	E se fizer isto, consigo apenas ter que modificar o array físico e o ponteiro continua a apontar corretamente para este array?
+//	R: ------------------------------------------------------------------------------------------------------------------------------------------
+//
+//
+//	Q: Podemos fazer malloc em arrays para passar para a memória partilhada?
+//
+//	R: Tem a haver com as Views, uma memória partilhada pode ter várias Views começando com offsets diferentes. A resposta é avisada por um evento para o avião ler!
+//     Temos de ter uma estrutura de resposta para os aviões ler a resposta e esta estrutura facilmente identificada para leitura dele.
+//
+//
+//	Q: O que é consumido é as mensagens entre os Aviões e o Control?
+//
+//	R: Sim, é isso mesmo, mensagens com as modificações / posições dos aviões.
+//
+//
+//	Q: Posso utilizar ponteiros na memória partilhada que apenas se referem ao inicio do meu array físico do Control para apenas visualizar a informação nos outros processos?
+//	   E se fizer isto, consigo apenas ter que modificar o array físico e o ponteiro continua a apontar corretamente para este array?
+//
+//	R: ------------------------------------------------------------------------------------------------------------------------------------------
+//
 //
 //-------//
 
