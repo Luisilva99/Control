@@ -87,7 +87,7 @@ typedef struct
 typedef struct
 {
 	Plane hangar[MAX_PLANES];		//Aviões dentro do Aeroporto
-	Passag passageiros[MAX_PASS];	//Passageiros em espera
+	Passag passageiros[MAX_PASS];	//Passageiros em espera no Aeroporto
 	TCHAR aeroName[TAM_INPUT];		//Nome do Aeroporto
 	int Y, X;						//Coordenadas do Aeroporto no Mapa
 } MapUnit;
@@ -114,11 +114,11 @@ typedef struct {
 //Estrutura dos Dados do Control//
 typedef struct {
 	Passag Pass[MAX_PASS];			//Passageiros
-	MapUnit * map;					//Aeroportos	||	tem de ser alocada memória para este
+	MapUnit map[MAX_AERO];			//Aeroportos
 	int maxAero, curAero;			//Máximo de Aeroportos e tamanho atual
-	Plane * planes;					//Aviões e as estruturas de mensagens	||	alocar o ponteiro para o número de aviões para usar para cada um dos segmentos de memória partilhada
+	Plane planes[MAX_PLANES];		//Aviões e as estruturas de mensagens
 	int maxPlane, curPlane;			//Máximo de Aviões e tamanho atual
-	HANDLE * planeViews;
+	HANDLE planeViews[MAX_PLANES];
 	TotalCircularBuffer tCircBuffer;
 } ControlData;
 //------------------------------//

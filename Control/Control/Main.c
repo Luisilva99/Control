@@ -16,7 +16,7 @@ int _tmain(int argc, TCHAR * argv[]) {
 	LPTSTR * pPlaneBuf;
 
 	// Limites e Erros
-	int maxPlane, maxAero, tipoErro;
+	int maxPlane, maxAero, tipoErro, valorArgumento;
 
 	// Sincroniza��o
 	HANDLE semaphoreGate;
@@ -41,7 +41,7 @@ int _tmain(int argc, TCHAR * argv[]) {
 
 		if ((tipoErro = createAeroLimits(MAX_AERO)) == 0)
 		{
-			_tprintf(TEXT("\nDefinição do limite de Aeroportos foi guardada no Sistema.\n"));
+			_tprintf(TEXT("\nDefinição do limite de Aeroportos definido no programa foi guardado no Sistema.\n"));
 		}
 		else
 		{
@@ -56,7 +56,7 @@ int _tmain(int argc, TCHAR * argv[]) {
 
 		if ((tipoErro = createPlaneLimits(MAX_PLANES)) == 0)
 		{
-			_tprintf(TEXT("\nDefinição do limite de Aviões foi guardada no Sistema.\n"));
+			_tprintf(TEXT("\nDefinição do limite de Aviões definido no programa foi guardado no Sistema.\n"));
 		}
 		else
 		{
@@ -74,11 +74,19 @@ int _tmain(int argc, TCHAR * argv[]) {
 
 	if (argv[1] != NULL)
 	{
-		if ((tipoErro = createAeroLimits(_tstoi(argv[1]))) == 0)
+		//Limitar aqui para o máximo definido no programa//DEBUG
+		valorArgumento = _tstoi(argv[1]);
+
+		if (valorArgumento > MAX_AERO)
+		{
+			valorArgumento = MAX_AERO;
+		}
+
+		if ((tipoErro = createAeroLimits(valorArgumento)) == 0)
 		{
 			_tprintf(TEXT("\nDefinição do limite de Aeroportos foi guardada no Sistema.\n"));
 
-			maxAero = _tstoi(argv[1]);
+			maxAero = valorArgumento;
 		}
 		else
 		{
@@ -103,11 +111,19 @@ int _tmain(int argc, TCHAR * argv[]) {
 
 	if (argv[2] != NULL && argc > 1)
 	{
-		if ((tipoErro = createPlaneLimits(_tstoi(argv[2]))) == 0)
+		//Limitar aqui para o máximo definido no programa//DEBUG
+		valorArgumento = _tstoi(argv[2]);
+
+		if (valorArgumento > MAX_PLANES)
+		{
+			valorArgumento = MAX_PLANES;
+		}
+
+		if ((tipoErro = createPlaneLimits(valorArgumento)) == 0)
 		{
 			_tprintf(TEXT("\nDefinição do limite de Aviões foi guardada no Sistema.\n"));
 
-			maxPlane = _tstoi(argv[2]);
+			maxPlane = valorArgumento;
 		}
 		else
 		{
@@ -136,13 +152,27 @@ int _tmain(int argc, TCHAR * argv[]) {
 
 	//###########Inicializa��o Padr�o dos Dados do Control###########//
 
-	control.map = malloc(maxAero * BUF_MAP);
+	for (int i = 0; i < maxAero; i++)
+	{
+		ZeroMemory(&control.map[i], sizeof(MapUnit));
+	}
+
 	control.curAero = 0;
 	control.maxAero = maxAero;
-	control.planes = malloc(maxPlane * BUF_PLANE);
+
+	for (int i = 0; i < maxPlane; i++)
+	{
+		ZeroMemory(&control.planes[i], sizeof(Plane));
+	}
+
 	control.curPlane = 0;
 	control.maxPlane = maxPlane;
-	control.planeViews = malloc(maxPlane * sizeof(HANDLE));
+
+	for (int i = 0; i < maxPlane; i++)
+	{
+		ZeroMemory(&control.planeViews[i], sizeof(HANDLE));
+	}
+
 	control.tCircBuffer.locReadAtual = 0;
 	control.tCircBuffer.locWriteAtual = 0;
 
@@ -186,10 +216,10 @@ int _tmain(int argc, TCHAR * argv[]) {
 	}
 
 	//Primeiro para a memória partilhada//DEBUG
-	pBuf = (LPTSTR)MapViewOfFile(hMapFile,   // handle to map object
-		FILE_MAP_ALL_ACCESS, // read/write permission
-		0,
-		0,
+	pBuf = (LPTSTR)MapViewOfFile(hMapFile,	// handle to map object
+		FILE_MAP_ALL_ACCESS,				// read/write permission
+		0,									// Por onde o resto a mais da memória pode ser mapeada
+		0,									// Por onde a memória irá começar a ser mapeada
 		BUF_CIRCULAR);
 
 	if (pBuf == NULL)
@@ -212,23 +242,29 @@ int _tmain(int argc, TCHAR * argv[]) {
 
 	for (int i = 0; i < maxPlane; i++)
 	{
-		*(control.planeViews + i) = (LPTSTR)MapViewOfFile(hMapFile,   // handle to map object
-			FILE_MAP_ALL_ACCESS, // read/write permission
+		/*control.planeViews[i] = (LPTSTR)MapViewOfFile(hMapFile,
+			FILE_MAP_ALL_ACCESS,
+			(DWORD)(BUF_CIRCULAR + BUF_PLANE * i),
+			(DWORD)(BUF_CIRCULAR + BUF_PLANE * (i + 1)),
+			BUF_PLANE);*/
+
+		control.planeViews[i] = (LPTSTR)MapViewOfFile(hMapFile,
+			FILE_MAP_ALL_ACCESS,
 			0,
-			0,
+			/*(DWORD)(BUF_CIRCULAR + BUF_PLANE * i)*/ 0,	//NECESSÀRIO CORRIGIR!!!
 			BUF_PLANE);
 
-		if (*(control.planeViews + i) == NULL)
+		if (control.planeViews[i] == NULL)
 		{
 			_tprintf(TEXT("Could not map view of file (%d).\n"),
 				GetLastError());
 
 			CloseHandle(hMapFile);
 
-			return -(100 + i);
+			return -i;
 		}
 
-		CopyMemory((PVOID)*(control.planeViews + i), (control.planes + i), BUF_PLANE);
+		CopyMemory((PVOID)control.planeViews[i], &control.planes[i], BUF_PLANE);
 
 		_tprintf(TEXT("\nMemória Partilhada criada com sucesso para um segmento de Avião.\n"));// DEBUG
 	}
