@@ -13,10 +13,7 @@ int _tmain(int argc, TCHAR * argv[]) {
 	// Memória Partilhada
 	HANDLE hMapFile;
 	LPTSTR pBuf = NULL;
-
-	TCHAR *msg = NULL;
-
-	TCHAR szMsg[BUF_SIZE];
+	LPTSTR * pPlaneBuf;
 
 	// Limites e Erros
 	int maxPlane, maxAero, tipoErro;
@@ -139,7 +136,22 @@ int _tmain(int argc, TCHAR * argv[]) {
 
 	//###########Inicializa��o Padr�o dos Dados do Control###########//
 
-	control.map = malloc(maxAero * sizeof(MapUnit));
+	control.map = malloc(maxAero * BUF_MAP);
+	control.curAero = 0;
+	control.maxAero = maxAero;
+	control.planes = malloc(maxPlane * BUF_PLANE);
+	control.curPlane = 0;
+	control.maxPlane = maxPlane;
+	control.planeViews = malloc(maxPlane * sizeof(HANDLE));
+	control.tCircBuffer.locReadAtual = 0;
+	control.tCircBuffer.locWriteAtual = 0;
+
+	for (int i = 0; i < TAM_BUFF; i++)
+	{
+		ZeroMemory(&control.tCircBuffer.buffer[i], sizeof(TCHAR) * TAM_INPUT);
+	}
+
+	pPlaneBuf = malloc(maxPlane * sizeof(LPTSTR));
 
 	_tprintf(TEXT("\nInicializa��o da memória física do Control foi um Sucesso!\n"));// DEBUG
 
@@ -152,7 +164,7 @@ int _tmain(int argc, TCHAR * argv[]) {
 		NULL,                    // default security
 		PAGE_READWRITE,          // read/write access
 		0,                       // maximum object size (high-order DWORD)
-		BUF_SIZE,                // maximum object size (low-order DWORD)
+		BUF_CIRCULAR + (maxPlane * BUF_PLANE),                // maximum object size (low-order DWORD)
 		TEXT("CentralMemory"));                 // name of mapping object
 
 
@@ -173,11 +185,12 @@ int _tmain(int argc, TCHAR * argv[]) {
 		return -2;
 	}
 
+	//Primeiro para a memória partilhada//DEBUG
 	pBuf = (LPTSTR)MapViewOfFile(hMapFile,   // handle to map object
 		FILE_MAP_ALL_ACCESS, // read/write permission
 		0,
 		0,
-		BUF_SIZE);
+		BUF_CIRCULAR);
 
 	if (pBuf == NULL)
 	{
@@ -189,11 +202,38 @@ int _tmain(int argc, TCHAR * argv[]) {
 		return -1;
 	}
 
-	//CopyMemory((PVOID)pBuf, msg, (_tcslen(msg) * sizeof(TCHAR)));
+	CopyMemory((PVOID)pBuf, &control.tCircBuffer, BUF_CIRCULAR);
 
-	_tprintf(TEXT("\nMemória Partilhada criada com sucesso.\n"));// DEBUG
+	_tprintf(TEXT("\nMemória Partilhada criada com sucesso e copiado o buffer circular.\n"));// DEBUG
 
 	//#############------------------#############//
+
+	//#######Mapeamento das Respostas / Informações dos Aviões#######//
+
+	for (int i = 0; i < maxPlane; i++)
+	{
+		*(control.planeViews + i) = (LPTSTR)MapViewOfFile(hMapFile,   // handle to map object
+			FILE_MAP_ALL_ACCESS, // read/write permission
+			0,
+			0,
+			BUF_PLANE);
+
+		if (*(control.planeViews + i) == NULL)
+		{
+			_tprintf(TEXT("Could not map view of file (%d).\n"),
+				GetLastError());
+
+			CloseHandle(hMapFile);
+
+			return -(100 + i);
+		}
+
+		CopyMemory((PVOID)*(control.planeViews + i), (control.planes + i), BUF_PLANE);
+
+		_tprintf(TEXT("\nMemória Partilhada criada com sucesso para um segmento de Avião.\n"));// DEBUG
+	}
+
+	//#######-------------------------------------------------#######//
 
 	//#####Sincronismos#####//
 
@@ -240,7 +280,16 @@ int _tmain(int argc, TCHAR * argv[]) {
 
 	//########Libertação da Memória Alocada########//
 
+	for (int i = 0; i < maxPlane; i++)
+	{
+		UnmapViewOfFile((pPlaneBuf + i));
+	}
+
+	free(pPlaneBuf);
+
 	free(control.map);
+
+	free(control.planes);
 
 	_tprintf(TEXT("\nLibertação da memória física do Control foi um Sucesso!\n"));// DEBUG
 

@@ -44,13 +44,8 @@
 //Variáveis de Input//
 #define TAM 100
 #define TAM_INPUT 500
+#define TAM_BUFF 5
 //------------------//
-
-//Variáveis Futuras Memória//
-#define MAX_THREADS 20
-#define BUF_SIZE 256
-#define MAP_TAM 1000
-//-------------------------//
 
 //Variáveis do Registry//
 #define REG_SETTINGS_KEY TEXT("Software\\CONTROL\\SETTINGS")
@@ -69,29 +64,28 @@
 //Estrutura passageiros//
 typedef struct
 {
-	int tempo;				//tempo de espera / ao fim deste tempo o passageiro vai se embora
-	TCHAR a_chegada[TAM];	//aeroporto de chegada
-	TCHAR a_partida[TAM];	//aeroporto de partida
+	int tempo;						//tempo de espera / ao fim deste tempo o passageiro vai se embora
+	TCHAR a_chegada[TAM];			//aeroporto de chegada
+	TCHAR a_partida[TAM];			//aeroporto de partida
 } Passag;
 //---------------------//
 
 //Estrutura Avião//
 typedef struct
 {
-	int id;					//id do avião
-	int x, y;				//coordenadas
-	TCHAR a_chegada[TAM];	//aeroporto de chegada
-	TCHAR a_partida[TAM];	//aeroporto de partida
-	Passag pass[MAX_PASS];	//max passageiros
-	int velocidade;			//velocidade do avião
+	int id;							//id do avião
+	int x, y;						//coordenadas
+	TCHAR a_chegada[TAM];			//aeroporto de chegada
+	TCHAR a_partida[TAM];			//aeroporto de partida
+	Passag pass[MAX_PASS];			//max passageiros
+	int velocidade;					//velocidade do avião
+	TCHAR controlResponse[TAM_INPUT];//resposta do Control ao Aviao
 } Plane;
 //---------------//
 
 //Estrutura da Célula do Mapa//
 typedef struct
 {
-	//Restruturar esta estrutura
-	int isAero;						//Se é Aeroporto ou não -> modificar esta estrutura
 	Plane hangar[MAX_PLANES];		//Aviões dentro do Aeroporto
 	Passag passageiros[MAX_PASS];	//Passageiros em espera
 	TCHAR aeroName[TAM_INPUT];		//Nome do Aeroporto
@@ -99,25 +93,35 @@ typedef struct
 } MapUnit;
 //---------------------------//
 
-//Estrutura da Memória Partilhada//
-typedef struct
-{
-	Plane planes[MAX_PLANES * 3];	//Aviões
-	MapUnit aeros[MAX_AERO * 3];	//Aeroportos
-	int maxAero, maxPlane;			//Máximo de Aviões e Aeroportos nos Arrays
-	TCHAR msg[TAM_INPUT];			//Menssagens trocadas entre o Control e o Aviao
-} SharedMemory;
+//Estruturas da Memória Partilhada//
+typedef struct {
+	TCHAR msg[TAM_INPUT];
+} CircularBuffer;
+
+typedef struct {
+	CircularBuffer buffer[TAM_BUFF];
+	int locReadAtual, locWriteAtual;
+} TotalCircularBuffer;
 //-------------------------------//
 
-// Estrutura Template dos Dados do Control
+//Variáveis Futuras Memória//
+#define BUF_MAP sizeof(MapUnit)
+#define BUF_PLANE sizeof(Plane)
+#define BUF_CIRCULAR sizeof(TotalCircularBuffer)
+#define MAP_TAM 1000
+//-------------------------//
+
+//Estrutura dos Dados do Control//
 typedef struct {
-	MapUnit *map;				//Aeroportos
-	int maxAero, curAero;		//Máximo de Aeroportos e tamanho atual
-	Plane *planes;				//Aviões
-	int maxPlane, curPlane;		//Máximo de Aviões e tamanho atual
-	Passag maxPass[MAX_PASS];	//Passageiros
-	SharedMemory memory;		//Memória Partilhada
+	Passag Pass[MAX_PASS];			//Passageiros
+	MapUnit * map;					//Aeroportos	||	tem de ser alocada memória para este
+	int maxAero, curAero;			//Máximo de Aeroportos e tamanho atual
+	Plane * planes;					//Aviões e as estruturas de mensagens	||	alocar o ponteiro para o número de aviões para usar para cada um dos segmentos de memória partilhada
+	int maxPlane, curPlane;			//Máximo de Aviões e tamanho atual
+	HANDLE * planeViews;
+	TotalCircularBuffer tCircBuffer;
 } ControlData;
+//------------------------------//
 
 //Função de Obtenção de inteiros
 //Retorna:
