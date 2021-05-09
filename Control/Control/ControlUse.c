@@ -15,15 +15,11 @@ int getIntInput() {
 }
 
 
-TCHAR *getTCHARInput() {
-	TCHAR szMsg[TAM_INPUT];
-
+void getTCHARInput(TCHAR * szMsg, int tam) {
 	fflush(stdin);
-	_fgetts(szMsg, TAM_INPUT, stdin);
+	_fgetts(szMsg, tam, stdin);
 
 	szMsg[_tcslen(szMsg) - 1] = TEXT('\0');
-
-	return szMsg;
 }
 
 
@@ -263,6 +259,28 @@ int createPlaneLimits(int valor) {
 }
 
 
+void listPassInfo(Passag pass) {
+	if (_tcscmp(pass.a_partida, TEXT("")) != 0)
+	{
+		_tprintf(TEXT("\nChegada / Atual: %s"), pass.a_chegada);
+		_tprintf(TEXT("\nPartida / Destino: %s"), pass.a_partida);
+		_tprintf(TEXT("\nTempo de Espera: %d\n"), pass.tempo);
+	}
+}
+
+
+void listPlaneInfo(Plane plane) {
+	if (plane.id != 0)
+	{
+		_tprintf(TEXT("\nID: %d"), plane.id);
+		_tprintf(TEXT("\nChegada / Atual: %s"), plane.a_chegada);
+		_tprintf(TEXT("\nPartida / Destino: %s"), plane.a_partida);
+		_tprintf(TEXT("\nVelocidade: %d"), plane.velocidade);
+		_tprintf(TEXT("\nPosição atual: [X=%d,Y=%d]\n"), plane.x, plane.y);
+	}
+}
+
+
 int comandSwitcher(ControlData * control, TCHAR * comand) {
 	TCHAR * auxA;
 	TCHAR * auxB = _tcstok_s(comand, TEXT(" "), &auxA);
@@ -280,11 +298,13 @@ int comandSwitcher(ControlData * control, TCHAR * comand) {
 		_tprintf(TEXT("\nhelp - Lista de comandos.\n"));
 		_tprintf(TEXT("\ninPlane stop/start - Abrir e fechar a aceitação de novos aviões.\n"));
 		_tprintf(TEXT("\ninPass stop/start - Abrir e fechar a aceitação de novos passageiros.\n"));
+		_tprintf(TEXT("\ncreateAero Nome posX poxY - Criar um novo aeroporto.\n"));
+		_tprintf(TEXT("\nlistAero - Apresenta a lista de todos os aeroportos registados.\n"));
 		_tprintf(TEXT("\nexit - Terminar Sistema.\n"));
 
 		return 1;
 	}
-	else if(_tcscmp(auxB, TEXT("inPlane")) == 0)
+	else if (_tcscmp(auxB, TEXT("inPlane")) == 0)
 	{
 		if ((auxB = _tcstok_s(NULL, TEXT(" "), &auxA)) != NULL)
 		{
@@ -302,7 +322,7 @@ int comandSwitcher(ControlData * control, TCHAR * comand) {
 
 		return 0;
 	}
-	else if(_tcscmp(auxB, TEXT("inPass")) == 0)
+	else if (_tcscmp(auxB, TEXT("inPass")) == 0)
 	{
 		if ((auxB = _tcstok_s(NULL, TEXT(" "), &auxA)) != NULL)
 		{
@@ -320,6 +340,115 @@ int comandSwitcher(ControlData * control, TCHAR * comand) {
 
 		return 0;
 	}
+	else if (_tcscmp(auxB, TEXT("createAero")) == 0)
+	{
+		if (control->curAero < control->maxAero)
+		{
+			if ((auxB = _tcstok_s(NULL, TEXT(" "), &auxA)) != NULL)
+			{
+				int index = 0, X = -1, Y = -1;
+				TCHAR nome[TAM_INPUT];
+
+				for (; index < control->maxAero; index++)
+				{
+					if (_tcscmp((control->map + index)->aeroName, auxB) == 0)
+					{
+						_tprintf(TEXT("\nJá existe um Aeroporto com esse nome.\n"));
+
+						return 0;
+					}
+					else if (_tcscmp((control->map + index)->aeroName, TEXT("")) == 0)
+					{
+						_tprintf(TEXT("\nEncontrei um espaço vazio.\nNome válido.\n"));//DEBUG
+
+						_stprintf_s(nome, TAM_INPUT, TEXT("%s"), auxB);
+
+						break;
+					}
+				}
+
+				if ((auxB = _tcstok_s(NULL, TEXT(" "), &auxA)) != NULL)
+				{
+					X = _tstoi(auxB);
+				}
+				else
+				{
+					return 0;
+				}
+
+				if ((auxB = _tcstok_s(NULL, TEXT(" "), &auxA)) != NULL)
+				{
+					Y = _tstoi(auxB);
+				}
+				else
+				{
+					return 0;
+				}
+
+				if ((X < 0 || X > MAP_TAM) || (Y < 0 || Y > MAP_TAM))
+				{
+					_tprintf(TEXT("\nCoordenadas inválidas!\n"));//DEBUG
+
+					return 0;
+				}
+
+				for (int i = 0; i < control->curAero; i++)
+				{
+					if (((control->map + i)->X == X) && ((control->map + i)->Y == Y))
+					{
+						_tprintf(TEXT("\nCoordenadas ocupadas!\n"));//DEBUG
+
+						return 0;
+					}
+				}
+
+				_stprintf_s((control->map + index)->aeroName, TAM_INPUT, TEXT("%s"), nome);
+
+				(control->map + index)->X = X;
+
+				(control->map + index)->Y = Y;
+
+				control->curAero += 1;
+
+				_tprintf(TEXT("\nAeroporto %s criado com sucesso na posição [X=%d,Y=%d]\n"), nome, X, Y);
+
+				return 1;
+			}
+		}
+		else
+		{
+			_tprintf(TEXT("\nNão é possível criar mais Aeroportos.\nLimite máximo alcançado.\n"));//DEBUG
+		}
+
+		return 0;
+	}
+	else if (_tcscmp(auxB, TEXT("listAero")) == 0)
+	{
+		if (control->curAero <= 0)
+		{
+			_tprintf(TEXT("\nNão existem Aeroportos no Mapa.\n"));
+
+			return 0;
+		}
+
+		for (int i = 0; i < control->curAero; i++)
+		{
+			_tprintf(TEXT("\n\nAeroporto %s\n"), (control->map + i)->aeroName);
+			_tprintf(TEXT("\nPassageiros dentro do Aeroporto:\n"));
+			for (int j = 0; j < MAX_PASS; j++)
+			{
+				listPassInfo((control->map + i)->passageiros[j]);
+			}
+			_tprintf(TEXT("\nAviões dentro do Aeroporto:\n"));
+			for (int j = 0; j < MAX_PASS; j++)
+			{
+				listPlaneInfo((control->map + i)->hangar[j]);
+			}
+			_tprintf(TEXT("\nPosição do Aeroporto: [X\t=\t%d,Y\t=\t%d]\n\n"), (control->map + i)->X, (control->map + i)->Y);
+		}
+
+		return 1;
+	}
 
 	//####--------####//
 
@@ -332,16 +461,19 @@ DWORD WINAPI tratamentoDeComandos(LPVOID lpParam)
 	ControlData * pDataArray;
 	pDataArray = (ControlData*)lpParam;
 
-	TCHAR *comando;
+	TCHAR *comando = (TCHAR *)malloc(sizeof(TCHAR) * TAM_INPUT);
 
 	_tprintf(TEXT("\nhelp - Lista de comandos.\n\n"));
 
 	do
 	{
 		_tprintf(TEXT("\n> "));
-		comando = getTCHARInput();
+		getTCHARInput(comando, TAM_INPUT);
+		//DEBUG - pode ocorrer aqui erro uma vez que o "comando" é modificado diretamente - se alguém introduzir "exit ok" a variável modificada terá "exit"
 		comandSwitcher(pDataArray, comando) ? _tprintf(TEXT("")) : _tprintf(TEXT("\nComando Incorreto.\n"));
 	} while (_tcscmp(comando, TEXT("exit")));
+
+	free(comando);
 
 	return 0;
 }

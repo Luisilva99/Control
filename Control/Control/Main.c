@@ -12,8 +12,6 @@ int _tmain(int argc, TCHAR * argv[]) {
 
 	// Memória Partilhada
 	HANDLE hMapFile;
-	LPTSTR pBuf = NULL;
-	LPTSTR * pPlaneBuf;
 
 	// Limites e Erros
 	int maxPlane, maxAero, tipoErro, valorArgumento;
@@ -27,6 +25,8 @@ int _tmain(int argc, TCHAR * argv[]) {
 
 	// Dados do Control
 	ControlData control;
+	SharedBuffer * pShared;
+	SharedBuffer shared;
 
 #ifdef UNICODE
 	_setmode(_fileno(stdin), _O_WTEXT);
@@ -152,38 +152,27 @@ int _tmain(int argc, TCHAR * argv[]) {
 
 	//###########Inicializa��o Padr�o dos Dados do Control###########//
 
-	for (int i = 0; i < maxAero; i++)
+	for (int i = 0; i < MAX_AERO; i++)
 	{
 		ZeroMemory(&control.map[i], sizeof(MapUnit));
+	}
+
+	for (int i = 0; i < MAX_PASS; i++)
+	{
+		ZeroMemory(&control.Pass[i], sizeof(Passag));
 	}
 
 	control.curAero = 0;
 	control.maxAero = maxAero;
 
-	for (int i = 0; i < maxPlane; i++)
-	{
-		ZeroMemory(&control.planes[i], sizeof(Plane));
-	}
-
 	control.curPlane = 0;
 	control.maxPlane = maxPlane;
 
-	for (int i = 0; i < maxPlane; i++)
-	{
-		ZeroMemory(&control.planeViews[i], sizeof(HANDLE));
-	}
+	ZeroMemory(&shared, sizeof(SharedBuffer));
 
-	control.tCircBuffer.locReadAtual = 0;
-	control.tCircBuffer.locWriteAtual = 0;
+	pShared = (SharedBuffer *)malloc(sizeof(SharedBuffer));
 
-	for (int i = 0; i < TAM_BUFF; i++)
-	{
-		ZeroMemory(&control.tCircBuffer.buffer[i], sizeof(TCHAR) * TAM_INPUT);
-	}
-
-	pPlaneBuf = malloc(maxPlane * sizeof(LPTSTR));
-
-	_tprintf(TEXT("\nInicializa��o da memória física do Control foi um Sucesso!\n"));// DEBUG
+	_tprintf(TEXT("\nInicialização da memória física do Control foi um Sucesso!\n"));// DEBUG
 
 	//###########-----------------------------------------###########//
 
@@ -194,7 +183,7 @@ int _tmain(int argc, TCHAR * argv[]) {
 		NULL,                    // default security
 		PAGE_READWRITE,          // read/write access
 		0,                       // maximum object size (high-order DWORD)
-		BUF_CIRCULAR + (maxPlane * BUF_PLANE),                // maximum object size (low-order DWORD)
+		sizeof(SharedBuffer),                // maximum object size (low-order DWORD)
 		TEXT("CentralMemory"));                 // name of mapping object
 
 
@@ -216,13 +205,13 @@ int _tmain(int argc, TCHAR * argv[]) {
 	}
 
 	//Primeiro para a memória partilhada//DEBUG
-	pBuf = (LPTSTR)MapViewOfFile(hMapFile,	// handle to map object
+	pShared = (SharedBuffer *)MapViewOfFile(hMapFile,	// handle to map object
 		FILE_MAP_ALL_ACCESS,				// read/write permission
 		0,									// Por onde o resto a mais da memória pode ser mapeada
 		0,									// Por onde a memória irá começar a ser mapeada
-		BUF_CIRCULAR);
+		sizeof(SharedBuffer));
 
-	if (pBuf == NULL)
+	if (pShared == NULL)
 	{
 		_tprintf(TEXT("Could not map view of file (%d).\n"),
 			GetLastError());
@@ -232,44 +221,13 @@ int _tmain(int argc, TCHAR * argv[]) {
 		return -1;
 	}
 
-	CopyMemory((PVOID)pBuf, &control.tCircBuffer, BUF_CIRCULAR);
+	CopyMemory(pShared, &shared, sizeof(SharedBuffer));
 
 	_tprintf(TEXT("\nMemória Partilhada criada com sucesso e copiado o buffer circular.\n"));// DEBUG
 
 	//#############------------------#############//
 
-	//#######Mapeamento das Respostas / Informações dos Aviões#######//
-
-	for (int i = 0; i < maxPlane; i++)
-	{
-		/*control.planeViews[i] = (LPTSTR)MapViewOfFile(hMapFile,
-			FILE_MAP_ALL_ACCESS,
-			(DWORD)(BUF_CIRCULAR + BUF_PLANE * i),
-			(DWORD)(BUF_CIRCULAR + BUF_PLANE * (i + 1)),
-			BUF_PLANE);*/
-
-		control.planeViews[i] = (LPTSTR)MapViewOfFile(hMapFile,
-			FILE_MAP_ALL_ACCESS,
-			0,
-			/*(DWORD)(BUF_CIRCULAR + BUF_PLANE * i)*/ 0,	//NECESSÀRIO CORRIGIR!!!
-			BUF_PLANE);
-
-		if (control.planeViews[i] == NULL)
-		{
-			_tprintf(TEXT("Could not map view of file (%d).\n"),
-				GetLastError());
-
-			CloseHandle(hMapFile);
-
-			return -i;
-		}
-
-		CopyMemory((PVOID)control.planeViews[i], &control.planes[i], BUF_PLANE);
-
-		_tprintf(TEXT("\nMemória Partilhada criada com sucesso para um segmento de Avião.\n"));// DEBUG
-	}
-
-	//#######-------------------------------------------------#######//
+	control.shared = pShared;
 
 	//#####Sincronismos#####//
 
@@ -316,24 +274,13 @@ int _tmain(int argc, TCHAR * argv[]) {
 
 	//########Libertação da Memória Alocada########//
 
-	for (int i = 0; i < maxPlane; i++)
-	{
-		UnmapViewOfFile((pPlaneBuf + i));
-	}
-
-	free(pPlaneBuf);
-
-	free(control.map);
-
-	free(control.planes);
-
 	_tprintf(TEXT("\nLibertação da memória física do Control foi um Sucesso!\n"));// DEBUG
 
 	//########-----------------------------########//
 
 	CloseHandle(semaphoreGate);
 
-	UnmapViewOfFile(pBuf);
+	UnmapViewOfFile(pShared);
 
 	CloseHandle(hMapFile);
 

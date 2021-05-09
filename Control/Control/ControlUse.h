@@ -111,15 +111,21 @@ typedef struct {
 #define MAP_TAM 1000
 //-------------------------//
 
+//Memória Partilhada//
+typedef struct
+{
+	Plane planes[MAX_PLANES];		//Aviões e as estruturas de mensagens
+	TotalCircularBuffer tCircBuffer;//Buffer circular de mensagens para ler
+} SharedBuffer;
+//------------------//
+
 //Estrutura dos Dados do Control//
 typedef struct {
 	Passag Pass[MAX_PASS];			//Passageiros
 	MapUnit map[MAX_AERO];			//Aeroportos
 	int maxAero, curAero;			//Máximo de Aeroportos e tamanho atual
-	Plane planes[MAX_PLANES];		//Aviões e as estruturas de mensagens
 	int maxPlane, curPlane;			//Máximo de Aviões e tamanho atual
-	HANDLE planeViews[MAX_PLANES];
-	TotalCircularBuffer tCircBuffer;
+	SharedBuffer * shared;			//Memória Partilhada com Aviao
 } ControlData;
 //------------------------------//
 
@@ -129,9 +135,10 @@ typedef struct {
 int getIntInput();
 
 //Função de Obtenção de frases
-//Retorna:
-//		Array de TCHAR
-TCHAR *getTCHARInput();
+//Recebe:
+//		szMsg	-	Array de TCHAR
+//		tam		-	Tamanho do Array de TCHAR
+void getTCHARInput(TCHAR * szMsg, int tam);
 
 //Função de Leitura do Máximo de Aeroportos
 //Retorna:
@@ -172,6 +179,16 @@ int createAeroLimits(int valor);
 //		-2	-	Erro ao adicionar o limite	-	erro crítico
 //		-3	-	Erro ao atualizar o limite	-	erro crítico
 int createPlaneLimits(int valor);
+
+//Função de apresentação da informação de um Passageiro
+//Recebe:
+//		pass	-	Estrutura de Passag com dados relacionados ao Passageiro
+void listPassInfo(Passag pass);
+
+//Função de apresentação da informação de um Passageiro
+//Recebe:
+//		plane	-	Estrutura de Plane com dados relacionados ao Avião
+void listPlaneInfo(Plane plane);
 
 //Thread de Tratamento de Comandos
 //Recebe:
