@@ -1,5 +1,7 @@
 #include "AviaoUse.h"
 
+
+
 int _tmain(int argc, TCHAR * argv[]) {
 
 	// Memória Partilhada
@@ -8,6 +10,22 @@ int _tmain(int argc, TCHAR * argv[]) {
 
 	// Sincronização
 	HANDLE semaphoreGate;
+
+
+	// Limites e Erros
+	int maxPlane, maxAero, tipoErro, valorArgumento;
+
+
+	// Threads
+	HANDLE hThread;
+	DWORD dwThread;
+
+	/*
+	// Dados do Control
+	ControlData control;
+	SharedBuffer* pShared;
+	SharedBuffer shared;
+	*/
 
 #ifdef UNICODE
 	_setmode(_fileno(stdin), _O_WTEXT);
@@ -61,7 +79,45 @@ int _tmain(int argc, TCHAR * argv[]) {
 		_tprintf(TEXT("\nErro ao abrir o semaforo de sincronização!\nErro %d\n"), GetLastError());
 	}
 
-	//#####------------#####//
+	//#####Limites Registry#####//
+
+	
+
+	if ((maxAero = readAeroLimits()) < 0) {
+		maxAero = MAX_AERO;
+
+		if ((tipoErro = createAeroLimits(MAX_AERO)) == 0)
+		{
+			_tprintf(TEXT("\nDefinição do limite de Aeroportos definido no programa foi guardado no Sistema.\n"));
+		}
+		else
+		{
+			_tprintf(TEXT("\nErro crítico! - ERRO 1 - Tipo %d\n"), tipoErro);
+
+			return -1;
+		}
+	}
+
+	if ((maxPlane = readPlaneLimits()) < 0) {
+		maxPlane = MAX_PLANES;
+
+		if ((tipoErro = createPlaneLimits(MAX_PLANES)) == 0)
+		{
+			_tprintf(TEXT("\nDefinição do limite de Aviões definido no programa foi guardado no Sistema.\n"));
+		}
+		else
+		{
+			_tprintf(TEXT("\nErro crítico! - ERRO 2 - Tipo %d\n"), tipoErro);
+
+			return -1;
+		}
+	}
+
+
+
+
+	//#####------------#####//	
+
 
 	//##Entrada no Control##//
 
