@@ -95,6 +95,7 @@ int _tmain(int argc, TCHAR * argv[]) {
 
 	aviao.Y = -1;
 
+
 	//#####----------------------#####//
 
 	//#############Memória Partilhada#############//

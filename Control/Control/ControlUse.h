@@ -243,7 +243,7 @@ int comandSwitcher(ControlData * control, TCHAR * comand);
 //Retorna:
 //		0 - nomes iguais
 //		1 - nomes diferentes
-int verificaIDPlane(ControlData* control, int tam);
+int verificaIDPlane(ControlData* control, int tam, int id);
 
 
 //Recebe:

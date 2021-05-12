@@ -77,3 +77,38 @@ int readAeroLimits() {
 }
 
 
+int verificaIDPlane(PlaneData* aviao, int tam) {
+
+
+	for (int i = 0; i < tam; i++) {
+		if (aviao[i].id == id)
+			return 1;
+		else
+			return 0;
+	}
+
+}
+
+
+int deletePlane(PlaneData* aviao, int tam, int id) {
+
+	int index, i = -1;
+
+
+	for (int i = 0; i < tam - 1; i++) {
+		if (aviao[i].id == id)
+		{
+			index = i;
+			break;
+		}
+	}
+	if (index != 1) {
+		for (i = index; i < tam - 1; i++)
+			aviao[i].id = aviao[i + 1].id;
+	}
+	else
+		_tprintf(TEXT("\nAviao nao encontrado!\n\n"));
+
+	return 0;
+
+}

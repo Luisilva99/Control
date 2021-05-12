@@ -117,4 +117,22 @@ void getTCHARInput(TCHAR * szMsg, int tam);
 //		-3	-	Leitura de regedit falhada	-	erro crítico
 int readAeroLimits();
 
+
+
+
+
+//Recebe:
+//		control - dados do aviao
+//Retorna:
+//		0 - nomes iguais
+//		1 - nomes diferentes
+int verificaIDPlane(PlaneData* aviao, int tam);
+
+
+//Recebe:
+//		controlo - dados do aviao
+//		tam	- tamanho do array de avioes
+//		id - id do aviao a eliminar
+int deletePlane(PlaneData* aviao, int tam, int id);
+
 #endif

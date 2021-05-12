@@ -494,11 +494,11 @@ DWORD WINAPI tratamentoDeComandos(LPVOID lpParam)
 }
 
 
-int verificaIDPlane(ControlData* control, int tam) {
+int verificaIDPlane(ControlData* control, int tam, int id) {
 
 
 	for (int i = 0; i < tam; i++) {
-		if (strcmp(control->map[i].aeroName, control->map[i + 1].aeroName) != 0)
+		if (control->planes[i].id == id)
 			return 1;
 		else
 			return 0;
