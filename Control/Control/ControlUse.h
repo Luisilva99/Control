@@ -41,13 +41,13 @@
 //
 //	Q: Posso colocar os mapas em memória partilhada para o avião saber para onde ir? Ou é o Control que lhe diz para onde ele deve ir?
 //
-//	R:
+//	R: Sim e devo, mas devo ter atenção aos sincronismos de quem lê e quem escreve!!!
 //
 //
 //	Q: Ao ler a memória partilhada, posso apenas ler uma das partes desta memória partilhada?
 //	   Tipo mandar uma struct com dois int e ler apenas um específico?
 //
-//	R:
+//	R: Não é necessário, mais vale enviar tudo de uma só vez. O aviao necessita de uma Thread com um evento de nome igual para dizer para todos os aviões lerem! (pensar bem)
 //
 //
 //	Q:
