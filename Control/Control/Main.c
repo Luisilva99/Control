@@ -70,14 +70,14 @@ int _tmain(int argc, TCHAR * argv[]) {
 
 	//#######Tratamento de Argumentos#######//
 
-	_tprintf(TEXT("\nNúmero de Argumentos: %d\n"), argc);
+	_tprintf(TEXT("\nNúmero de Argumentos: %d\n"), argc);//DEBUG
 
 	if (argv[1] != NULL)
 	{
 		//Limitar aqui para o máximo definido no programa//DEBUG
 		valorArgumento = _tstoi(argv[1]);
 
-		if (valorArgumento > MAX_AERO)
+		if (valorArgumento > MAX_AERO || valorArgumento <= 0)
 		{
 			valorArgumento = MAX_AERO;
 		}
@@ -114,7 +114,7 @@ int _tmain(int argc, TCHAR * argv[]) {
 		//Limitar aqui para o máximo definido no programa//DEBUG
 		valorArgumento = _tstoi(argv[2]);
 
-		if (valorArgumento > MAX_PLANES)
+		if (valorArgumento > MAX_PLANES || valorArgumento <= 0)
 		{
 			valorArgumento = MAX_PLANES;
 		}

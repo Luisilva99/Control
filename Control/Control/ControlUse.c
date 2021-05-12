@@ -260,10 +260,10 @@ int createPlaneLimits(int valor) {
 
 
 void listPassInfo(Passag pass) {
-	if (_tcscmp(pass.a_partida, TEXT("")) != 0)
+	if (_tcscmp(pass.partida, TEXT("")) != 0)
 	{
-		_tprintf(TEXT("\nChegada / Atual: %s"), pass.a_chegada);
-		_tprintf(TEXT("\nPartida / Destino: %s"), pass.a_partida);
+		_tprintf(TEXT("\nChegada / Atual: %s"), pass.destino);
+		_tprintf(TEXT("\nPartida / Destino: %s"), pass.partida);
 		_tprintf(TEXT("\nTempo de Espera: %d\n"), pass.tempo);
 	}
 }
@@ -273,10 +273,10 @@ void listPlaneInfo(Plane plane) {
 	if (plane.id != 0)
 	{
 		_tprintf(TEXT("\nID: %d"), plane.id);
-		_tprintf(TEXT("\nChegada / Atual: %s"), plane.a_chegada);
-		_tprintf(TEXT("\nPartida / Destino: %s"), plane.a_partida);
+		_tprintf(TEXT("\nChegada / Atual: %s"), plane.destino);
+		_tprintf(TEXT("\nPartida / Destino: %s"), plane.partida);
 		_tprintf(TEXT("\nVelocidade: %d"), plane.velocidade);
-		_tprintf(TEXT("\nPosição atual: [X=%d,Y=%d]\n"), plane.x, plane.y);
+		_tprintf(TEXT("\nPosição atual: [X=%d,Y=%d]\n"), plane.X, plane.Y);
 	}
 }
 
@@ -448,6 +448,21 @@ int comandSwitcher(ControlData * control, TCHAR * comand) {
 		}
 
 		return 1;
+	}
+	else if (_tcscmp(auxB, TEXT("DEBUG")) == 0)
+	{
+		if ((auxB = _tcstok_s(NULL, TEXT(" "), &auxA)) != NULL)
+		{
+			if (_tcscmp(auxB, TEXT("MSG")) == 0) {
+				_stprintf_s(control->shared->msg.controlResponse, TAM_INPUT, TEXT("%s"), auxA);
+
+				return 1;
+			}
+
+			return 0;
+		}
+
+		return 0;
 	}
 
 	//####--------####//

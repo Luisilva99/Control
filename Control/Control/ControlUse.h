@@ -37,6 +37,28 @@
 //
 //	R: ------------------------------------------------------------------------------------------------------------------------------------------
 //
+//------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+//
+//	Q: Posso colocar os mapas em memória partilhada para o avião saber para onde ir? Ou é o Control que lhe diz para onde ele deve ir?
+//
+//	R:
+//
+//
+//	Q: Ao ler a memória partilhada, posso apenas ler uma das partes desta memória partilhada?
+//	   Tipo mandar uma struct com dois int e ler apenas um específico?
+//
+//	R:
+//
+//
+//	Q:
+//
+//	R:
+//
+//
+//	Q:
+//
+//	R:
+//
 //
 //-------//
 
@@ -54,6 +76,7 @@
 #define SETTINGS_AERO TEXT("maxAero")
 #define MAX_AERO 5
 #define MAX_PASS 5
+#define MAX_PASS_CONTROL 20
 //---------------------//
 
 //Variáveis da Sincronização//
@@ -65,21 +88,23 @@
 typedef struct
 {
 	int tempo;						//tempo de espera / ao fim deste tempo o passageiro vai se embora
-	TCHAR a_chegada[TAM];			//aeroporto de chegada
-	TCHAR a_partida[TAM];			//aeroporto de partida
+	TCHAR destino[TAM];				//aeroporto de destino
+	TCHAR partida[TAM];				//aeroporto de partida
 } Passag;
 //---------------------//
 
 //Estrutura Avião//
 typedef struct
 {
-	int id;							//id do avião
-	int x, y;						//coordenadas
-	TCHAR a_chegada[TAM];			//aeroporto de chegada
-	TCHAR a_partida[TAM];			//aeroporto de partida
-	Passag pass[MAX_PASS];			//max passageiros
+	int id;							//id do avião / processo do avião
+	TCHAR destino[TAM];				//aeroporto de destino
+	int next_X, next_Y;				//coordenadas / posição final
+	TCHAR partida[TAM];				//aeroporto de partida
+	int X, Y;						//coordenadas / posição atual
+	Passag pass[MAX_PASS];			//passageiros
+	int maxPass, curPass;			//máximo de passageiros e tamanho atual
 	int velocidade;					//velocidade do avião
-	TCHAR controlResponse[TAM_INPUT];//resposta do Control ao Aviao
+	//TCHAR controlResponse[TAM_INPUT];//resposta do Control ao Aviao
 } Plane;
 //---------------//
 
@@ -100,9 +125,24 @@ typedef struct {
 
 typedef struct {
 	CircularBuffer buffer[TAM_BUFF];
-	int locReadAtual, locWriteAtual;
+	int locReadAtual, locWriteAtual, maxBuffer;
 } TotalCircularBuffer;
+
+typedef struct
+{
+	int id;							//ID do user a receber
+	int X, Y;						//Coordenadas respondidas
+	TCHAR controlResponse[TAM_INPUT];//resposta do Control ao Aviao
+} SharedMsg;
 //-------------------------------//
+
+//Memória Partilhada//
+typedef struct
+{
+	SharedMsg msg;					//Aviões e as estruturas de mensagens
+	TotalCircularBuffer tCircBuffer;//Buffer circular de mensagens para ler
+} SharedBuffer;
+//------------------//
 
 //Variáveis Futuras Memória//
 #define BUF_MAP sizeof(MapUnit)
@@ -111,20 +151,14 @@ typedef struct {
 #define MAP_TAM 1000
 //-------------------------//
 
-//Memória Partilhada//
-typedef struct
-{
-	Plane planes[MAX_PLANES];		//Aviões e as estruturas de mensagens
-	TotalCircularBuffer tCircBuffer;//Buffer circular de mensagens para ler
-} SharedBuffer;
-//------------------//
-
 //Estrutura dos Dados do Control//
 typedef struct {
-	Passag Pass[MAX_PASS];			//Passageiros
+	Passag Pass[MAX_PASS_CONTROL];	//Passageiros
+	int maxPass, curPass;			//Máximo de Passageiros e tamanho atual
+	Plane planes[MAX_PLANES];		//Aviões e as estruturas de mensagens
+	int maxPlane, curPlane;			//Máximo de Aviões e tamanho atual
 	MapUnit map[MAX_AERO];			//Aeroportos
 	int maxAero, curAero;			//Máximo de Aeroportos e tamanho atual
-	int maxPlane, curPlane;			//Máximo de Aviões e tamanho atual
 	SharedBuffer * shared;			//Memória Partilhada com Aviao
 } ControlData;
 //------------------------------//

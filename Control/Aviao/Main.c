@@ -13,25 +13,89 @@ int _tmain(int argc, TCHAR * argv[]) {
 
 
 	// Limites e Erros
-	int maxPlane, maxAero, tipoErro, valorArgumento;
+	int valorArgumento;
 
 
 	// Threads
 	HANDLE hThread;
 	DWORD dwThread;
 
-	/*
-	// Dados do Control
-	ControlData control;
+
+	// Dados do Aviao
+	PlaneData aviao;
 	SharedBuffer* pShared;
 	SharedBuffer shared;
-	*/
+
 
 #ifdef UNICODE
 	_setmode(_fileno(stdin), _O_WTEXT);
 	_setmode(_fileno(stdout), _O_WTEXT);
 	_setmode(_fileno(stderr), _O_WTEXT);
 #endif
+
+	//#######Tratamento de Argumentos#######//
+
+	_tprintf(TEXT("\nNúmero de Argumentos: %d\n"), argc);//DEBUG
+
+	if (argv[1] != NULL)
+	{
+		valorArgumento = _tstoi(argv[1]);
+
+		if (valorArgumento > MAX_PASS)
+		{
+			valorArgumento = MAX_PASS;
+
+			_tprintf(TEXT("\nValor máximo de lotação do sistema foi ultrapassado!\nLotação do Avião: %d\n"), MAX_PASS);
+		}
+
+		aviao.maxPass = valorArgumento;
+	}
+
+	if (argv[2] != NULL && argc > 1)
+	{
+		valorArgumento = _tstoi(argv[2]);
+
+		if (valorArgumento > MAX_VELO)
+		{
+			valorArgumento = MAX_VELO;
+
+			_tprintf(TEXT("\nValor máximo de velocidade do sistema foi ultrapassado!\nVelocidade do Avião: %d\n"), MAX_PASS);
+		}
+
+		aviao.velocidade = valorArgumento;
+	}
+
+	if (argv[3] != NULL && argc > 2)
+	{
+		_stprintf_s(aviao.partida, TAM, TEXT("%s"), argv[3]);
+
+		_tprintf(TEXT("\nAeroporto inicial: %s\n"), aviao.partida);//DEBUG
+	}
+
+	//#######------------------------#######//
+
+	//#####Inicialização de Dados#####//
+
+	ZeroMemory(aviao.destino, sizeof(TCHAR) * TAM_INPUT);
+
+	aviao.curPass = 0;
+
+	aviao.id = (int) GetCurrentProcessId();
+
+	aviao.next_X = -1;
+
+	aviao.next_Y = -1;
+
+	for (int i = 0; i < MAX_PASS; i++)
+	{
+		ZeroMemory(&aviao.pass[i], sizeof(Passag));
+	}
+
+	aviao.X = -1;
+
+	aviao.Y = -1;
+
+	//#####----------------------#####//
 
 	//#############Memória Partilhada#############//
 
@@ -48,13 +112,13 @@ int _tmain(int argc, TCHAR * argv[]) {
 		return -3;
 	}
 
-	pBuf = (LPTSTR)MapViewOfFile(hMapFile,
+	pShared = (SharedBuffer *)MapViewOfFile(hMapFile,
 		FILE_MAP_ALL_ACCESS,
 		0,
 		0,
-		BUF_SIZE);
+		TAM_SHARED);
 
-	if (pBuf == NULL)
+	if (pShared == NULL)
 	{
 		_tprintf(TEXT("Could not map view of file (%d).\n"),
 			GetLastError());
@@ -64,7 +128,9 @@ int _tmain(int argc, TCHAR * argv[]) {
 		return -1;
 	}
 
-	//CopyMemory((PVOID)pBuf, msg, (_tcslen(msg) * sizeof(TCHAR)));
+	CopyMemory(&shared, pShared, TAM_SHARED);
+
+	aviao.buffer = pShared;
 
 	_tprintf(TEXT("\nMemória Partilhada aberta com sucesso.\n"));
 
@@ -79,44 +145,7 @@ int _tmain(int argc, TCHAR * argv[]) {
 		_tprintf(TEXT("\nErro ao abrir o semaforo de sincronização!\nErro %d\n"), GetLastError());
 	}
 
-	//#####Limites Registry#####//
-
-	
-
-	if ((maxAero = readAeroLimits()) < 0) {
-		maxAero = MAX_AERO;
-
-		if ((tipoErro = createAeroLimits(MAX_AERO)) == 0)
-		{
-			_tprintf(TEXT("\nDefinição do limite de Aeroportos definido no programa foi guardado no Sistema.\n"));
-		}
-		else
-		{
-			_tprintf(TEXT("\nErro crítico! - ERRO 1 - Tipo %d\n"), tipoErro);
-
-			return -1;
-		}
-	}
-
-	if ((maxPlane = readPlaneLimits()) < 0) {
-		maxPlane = MAX_PLANES;
-
-		if ((tipoErro = createPlaneLimits(MAX_PLANES)) == 0)
-		{
-			_tprintf(TEXT("\nDefinição do limite de Aviões definido no programa foi guardado no Sistema.\n"));
-		}
-		else
-		{
-			_tprintf(TEXT("\nErro crítico! - ERRO 2 - Tipo %d\n"), tipoErro);
-
-			return -1;
-		}
-	}
-
-
-
-
-	//#####------------#####//	
+	//#####------------#####//
 
 
 	//##Entrada no Control##//
@@ -136,10 +165,20 @@ int _tmain(int argc, TCHAR * argv[]) {
 
 	_gettch();
 
+	_tprintf(TEXT("\nO que se encontra escrito na memória partilhada (teste):\n\n"));
+
+	_tprintf(TEXT("\n%s\n"), aviao.buffer->msg.controlResponse);
+
+	_gettch();
+
 	if (ReleaseSemaphore(semaphoreGate, 1, NULL) == 0)
 	{
 		_tprintf(TEXT("\nLibertação do semaforo não foi um sucesso!\n"));
 	}
+
+	UnmapViewOfFile(pShared);
+
+	CloseHandle(hMapFile);
 
 	return 0;
 }
