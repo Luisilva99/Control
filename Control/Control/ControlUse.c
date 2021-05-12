@@ -505,3 +505,28 @@ int verificaIDPlane(ControlData* control, int tam) {
 	}
 
 }
+
+
+int deletePlane(ControlData* control, int tam, int id) {
+
+	int index, i = -1;
+
+
+	for (int i = 0; i < tam - 1; i++) {
+		if (control->planes[i].id == id)
+		{
+			index = i;
+			break;
+		}
+	}
+	if (index != 1) {
+		for (i = index; i < tam - 1; i++)
+			control->planes[i].id = control->planes[i + 1].id;
+	}
+	else
+		_tprintf(TEXT("\nAviao nao encontrado!\n\n"));
+
+	return 0;
+
+}
+

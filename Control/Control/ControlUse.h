@@ -246,5 +246,10 @@ int comandSwitcher(ControlData * control, TCHAR * comand);
 int verificaIDPlane(ControlData* control, int tam);
 
 
+//Recebe:
+//		controlo - dados do controlo
+//		tam	- tamanho do array de avioes
+//		id - id do aviao a eliminar
+int deletePlane(ControlData* control, int tam, int id);
 
 #endif
