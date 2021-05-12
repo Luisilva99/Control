@@ -59,7 +59,7 @@ int _tmain(int argc, TCHAR * argv[]) {
 		{
 			valorArgumento = MAX_VELO;
 
-			_tprintf(TEXT("\nValor máximo de velocidade do sistema foi ultrapassado!\nVelocidade do Avião: %d\n"), MAX_PASS);
+			_tprintf(TEXT("\nValor máximo de velocidade do sistema foi ultrapassado!\nVelocidade do Avião: %d\n"), MAX_VELO);
 		}
 
 		aviao.velocidade = valorArgumento;

@@ -238,4 +238,13 @@ DWORD WINAPI tratamentoDeComandos(LPVOID lpParam);
 //		1	-	Comando foi tratado
 int comandSwitcher(ControlData * control, TCHAR * comand);
 
+//Recebe:
+//		control - dados do control
+//Retorna:
+//		0 - nomes iguais
+//		1 - nomes diferentes
+int verificaIDPlane(ControlData* control, int tam);
+
+
+
 #endif

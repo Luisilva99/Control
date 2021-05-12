@@ -493,3 +493,15 @@ DWORD WINAPI tratamentoDeComandos(LPVOID lpParam)
 	return 0;
 }
 
+
+int verificaIDPlane(ControlData* control, int tam) {
+
+
+	for (int i = 0; i < tam; i++) {
+		if (strcmp(control->map[i].aeroName, control->map[i + 1].aeroName) != 0)
+			return 1;
+		else
+			return 0;
+	}
+
+}
