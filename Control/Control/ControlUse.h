@@ -98,7 +98,8 @@ typedef struct
 {
 	int id;							//id do avião / processo do avião
 	TCHAR destino[TAM];				//aeroporto de destino
-	int next_X, next_Y;				//coordenadas / posição final
+	int next_X, next_Y;				//coordenadas / posição seguinte
+	int final_X, final_Y;			//coordenadas / posição final
 	TCHAR partida[TAM];				//aeroporto de partida
 	int X, Y;						//coordenadas / posição atual
 	Passag pass[MAX_PASS];			//passageiros

@@ -47,6 +47,10 @@ int _tmain(int argc, TCHAR * argv[]) {
 
 	aviao.next_Y = -1;
 
+	aviao.final_X = -1;
+
+	aviao.final_Y = -1;
+
 	for (int i = 0; i < MAX_PASS; i++)
 	{
 		ZeroMemory(&aviao.pass[i], sizeof(Passag));
@@ -207,7 +211,7 @@ int _tmain(int argc, TCHAR * argv[]) {
 
 	_tprintf(TEXT("\nInserir este avião no sítio certo.\n\n"));//DEBUG / Necessita de ir para o buffer circular
 
-	if (!insertAviaoTemporary(aviao))
+	if (!insertAviaoTemporary(&aviao))
 	{
 		_tprintf(TEXT("\nErro ao inserir DEBUG aviao na memória partilhada.\n"));
 
@@ -227,11 +231,28 @@ int _tmain(int argc, TCHAR * argv[]) {
 
 	_gettch();
 
-	_tprintf(TEXT("\nO que se encontra escrito na memória partilhada (teste):\n\n"));//DEBUG
+	//#####Threads#####//
 
-	_tprintf(TEXT("\n%s\n"), aviao.buffer->planes[aviao.buffer->curPlane].controlResponse);//DEBUG
+	hThread = CreateThread(
+		NULL,
+		0,
+		tratamentoDeComandos,
+		(LPVOID)&aviao,
+		0,
+		&dwThread
+	);
 
-	_gettch();
+	if (hThread == NULL)
+	{
+		_tprintf(TEXT("CreateThread failed, GLE=%d.\n"), GetLastError());
+		return -7;
+	}
+
+	//######----------------------######//
+
+	WaitForSingleObject(hThread, INFINITE);
+
+	//-----------------//
 
 	if (ReleaseSemaphore(semaphoreGate, 1, NULL) == 0)
 	{

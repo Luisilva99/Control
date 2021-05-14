@@ -8,8 +8,7 @@
 #include <fcntl.h>
 #include <io.h>
 #include <winreg.h>
-
-
+#include "../Aviao/SO2_TP_DLL_2021.h"
 
 //Variáveis Futuras Memória//
 #define MAX_THREADS 20
@@ -55,7 +54,8 @@ typedef struct
 {
 	int id;							//id do avião / processo do avião
 	TCHAR destino[TAM];				//aeroporto de destino
-	int next_X, next_Y;				//coordenadas / posição final
+	int next_X, next_Y;				//coordenadas / posição seguinte
+	int final_X, final_Y;			//coordenadas / posição final
 	TCHAR partida[TAM];				//aeroporto de partida
 	int X, Y;						//coordenadas / posição atual
 	Passag pass[MAX_PASS];			//passageiros
@@ -121,7 +121,8 @@ typedef struct
 {
 	int id;							//id do avião / processo do avião
 	TCHAR destino[TAM];				//aeroporto de chegada
-	int next_X, next_Y;				//coordenadas / posição final
+	int next_X, next_Y;				//coordenadas / posição seguinte
+	int final_X, final_Y;			//coordenadas / posição final
 	TCHAR partida[TAM];				//aeroporto de partida
 	int X, Y;						//coordenadas / posição atual
 	Passag pass[MAX_PASS];			//passageiros
@@ -153,10 +154,29 @@ int aviaoAeroVerify(PlaneData aviao);
 
 //Função Temporária de introdução dos dados do Aviao na Memória Partilhada
 //Recebe:
-//		aviao	-	Estrutura dos dados do programa
+//		aviao	-	Ponteiro da Estrutura dos dados do programa
 //Retorna:
 //		0		-	Não foi possível introduzir o avião / existe algum erro no Sistema do Control
 //		1		-	Foi possível introduzir o avião numa posição livre
-int insertAviaoTemporary(PlaneData aviao);
+int insertAviaoTemporary(PlaneData * aviao);
+
+//Função de apresentação da informação de um Passageiro
+//Recebe:
+//		plane	-	Estrutura de Plane com dados relacionados ao Avião
+void listPlaneInfo(PlaneData plane);
+
+//Thread de Tratamento de Comandos
+//Recebe:
+//		lpParam	-	Dados do Control
+DWORD WINAPI tratamentoDeComandos(LPVOID lpParam);
+
+//Função de Tratamento de Comandos do Control
+//Recebe:
+//		control	-	Dados do Control
+//		comand	-	Comando introduzido pelo utilizador para Tratamento
+//Retorna:
+//		0	-	Comando sem espaços -> temporário
+//		1	-	Comando foi tratado
+int comandSwitcher(PlaneData * , TCHAR * comand);
 
 #endif

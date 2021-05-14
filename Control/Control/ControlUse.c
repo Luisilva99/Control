@@ -282,6 +282,7 @@ void listPlaneInfo(Plane plane) {
 		{
 			_tprintf(TEXT("\nPosição seguinte: [X=%d,Y=%d]"), plane.next_X, plane.next_Y);
 		}
+		!_tcslen(plane.destino) ? _tprintf(TEXT("")) : _tprintf(TEXT("\nPosição final: [X=%d,Y=%d]"), plane.final_X, plane.final_Y);
 		_tprintf(TEXT("\nNº de Passageiros embarcados: %d\n"), plane.curPass);
 	}
 }
@@ -539,6 +540,8 @@ int deletePlane(ControlData* control, int id) {
 				control->shared->planes[i].maxPass = 0;
 				control->shared->planes[i].next_X = 0;
 				control->shared->planes[i].next_Y = 0;
+				control->shared->planes[i].final_X = 0;
+				control->shared->planes[i].final_Y = 0;
 				control->shared->planes[i].velocidade = 0;
 				control->shared->planes[i].X = 0;
 				control->shared->planes[i].Y = 0;
@@ -564,6 +567,8 @@ int deletePlane(ControlData* control, int id) {
 				control->shared->planes[j].maxPass = 0;
 				control->shared->planes[j].next_X = 0;
 				control->shared->planes[j].next_Y = 0;
+				control->shared->planes[j].final_X = 0;
+				control->shared->planes[j].final_Y = 0;
 				control->shared->planes[j].velocidade = 0;
 				control->shared->planes[j].X = 0;
 				control->shared->planes[j].Y = 0;
