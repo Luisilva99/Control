@@ -24,91 +24,62 @@ void getTCHARInput(TCHAR * szMsg, int tam) {
 }
 
 
-int readAeroLimits() {
-	HKEY chave;
-	LONG Ok_Key;
-	TCHAR par_valor[TAM];
-	LONG test_existance;
-	DWORD tam_data;
-
-	Ok_Key = RegOpenKeyExW(HKEY_CURRENT_USER, REG_SETTINGS_KEY, REG_OPTION_OPEN_LINK, KEY_READ | KEY_WRITE | KEY_SET_VALUE | KEY_QUERY_VALUE, &chave);
-
-	if (Ok_Key == ERROR_SUCCESS)
+int aviaoAeroVerify(PlaneData aviao) {
+	for (int i = 0; i < aviao.buffer->curAero; i++)
 	{
-		_tprintf(TEXT("\nA chave existe.\n"));
-	}
-	else
-	{
-		_tprintf(TEXT("\nA chave não existe, vai ser criada.\n"));
-
-		LONG Create_Key = RegCreateKeyExW(HKEY_CURRENT_USER, REG_SETTINGS_KEY, 0, NULL, REG_OPTION_NON_VOLATILE, KEY_READ | KEY_WRITE | KEY_SET_VALUE | KEY_QUERY_VALUE, NULL, &chave, NULL);
-
-		if (Create_Key == ERROR_SUCCESS)
-		{
-			_tprintf(TEXT("\nChave foi criada com sucesso!"));
-
-			return -1;
-		}
-		else
-		{
-			_tprintf(TEXT("\nChave não foi possível ser criada!"));
-
-			return -2;
-		}
-	}
-
-	tam_data = sizeof(par_valor);
-
-	test_existance = RegQueryValueEx(chave, SETTINGS_AERO, 0, NULL, (LPBYTE)par_valor, &tam_data);
-
-	if (test_existance == ERROR_SUCCESS)
-	{
-		_tprintf(TEXT("\nLeitura no regedit bem sucedida!\n"));
-		//_tprintf(TEXT("\nMáximo de Aeroportos permitidos criar: %s\n"), par_valor);
-	}
-	else
-	{
-		_tprintf(TEXT("Leitura no regedit falhada!\n"));
-
-		return -3;
-	}
-
-	return _tstoi(par_valor);
-}
-
-
-int verificaIDPlane(PlaneData* aviao, int tam) {
-
-
-	for (int i = 0; i < tam; i++) {
-		if (aviao[i].id == id)
+		if (_tcscmp(aviao.partida, (aviao.buffer->map + i)->aeroName) == 0) {
 			return 1;
-		else
-			return 0;
-	}
-
-}
-
-
-int deletePlane(PlaneData* aviao, int tam, int id) {
-
-	int index, i = -1;
-
-
-	for (int i = 0; i < tam - 1; i++) {
-		if (aviao[i].id == id)
-		{
-			index = i;
-			break;
 		}
 	}
-	if (index != 1) {
-		for (i = index; i < tam - 1; i++)
-			aviao[i].id = aviao[i + 1].id;
-	}
-	else
-		_tprintf(TEXT("\nAviao nao encontrado!\n\n"));
 
 	return 0;
+}
 
+
+int insertAviaoTemporary(PlaneData aviao) {
+	int i = 0;
+
+	for (; i < aviao.buffer->curPlane; i++)
+	{
+		if ((aviao.buffer->planes + i)->id == aviao.id)
+		{
+			_tprintf(TEXT("\nID do avião já existe!\n"));
+
+			return 0;
+		}
+	}
+
+	(aviao.buffer->planes + i)->id = aviao.id;
+	(aviao.buffer->planes + i)->maxPass = aviao.maxPass;
+	(aviao.buffer->planes + i)->velocidade = aviao.velocidade;
+
+	for (int j = 0; j < aviao.buffer->curAero; j++)
+	{
+		if (_tcscmp(aviao.partida, (aviao.buffer->map + j)->aeroName) == 0) {
+			_stprintf_s((aviao.buffer->planes + i)->partida, TAM, TEXT("%s"), aviao.partida);
+
+			aviao.X = (aviao.buffer->map + j)->X;
+
+			aviao.Y = (aviao.buffer->map + j)->Y;
+
+			(aviao.buffer->planes + i)->X = aviao.X;
+
+			(aviao.buffer->planes + i)->Y = aviao.Y;
+
+			(aviao.buffer->map + j)->hangar[(aviao.buffer->map + j)->curHang].id = aviao.id;
+
+			(aviao.buffer->map + j)->hangar[(aviao.buffer->map + j)->curHang].velocidade = aviao.velocidade;
+
+			(aviao.buffer->map + j)->hangar[(aviao.buffer->map + j)->curHang].X = aviao.X;
+
+			(aviao.buffer->map + j)->hangar[(aviao.buffer->map + j)->curHang].Y = aviao.Y;
+
+			_stprintf_s((aviao.buffer->map + j)->hangar[(aviao.buffer->map + j)->curHang].partida, TAM, TEXT("%s"), aviao.partida);
+
+			return 1;
+		}
+	}
+
+
+	return 0;
 }

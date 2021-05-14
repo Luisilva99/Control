@@ -152,23 +152,27 @@ int _tmain(int argc, TCHAR * argv[]) {
 
 	//###########Inicializa��o Padr�o dos Dados do Control###########//
 
-	for (int i = 0; i < MAX_AERO; i++)
-	{
-		ZeroMemory(&control.map[i], sizeof(MapUnit));
-	}
-
-	for (int i = 0; i < MAX_PASS; i++)
+	for (int i = 0; i < MAX_PASS_CONTROL; i++)
 	{
 		ZeroMemory(&control.Pass[i], sizeof(Passag));
 	}
 
-	control.curAero = 0;
-	control.maxAero = maxAero;
+	control.curPass = 0;
 
-	control.curPlane = 0;
-	control.maxPlane = maxPlane;
+	control.maxPass = MAX_PASS_CONTROL;
 
 	ZeroMemory(&shared, sizeof(SharedBuffer));
+
+	shared.maxAero = maxAero;
+
+	shared.maxPlane = maxPlane;
+
+	for (int i = 0; i < shared.maxAero; i++)
+	{
+		shared.map[i].maxHang = MAX_PLANES;
+
+		shared.map[i].maxPass = MAX_PASS;
+	}
 
 	pShared = (SharedBuffer *)malloc(sizeof(SharedBuffer));
 
@@ -223,11 +227,11 @@ int _tmain(int argc, TCHAR * argv[]) {
 
 	CopyMemory(pShared, &shared, sizeof(SharedBuffer));
 
+	control.shared = pShared;
+
 	_tprintf(TEXT("\nMemória Partilhada criada com sucesso e copiado o buffer circular.\n"));// DEBUG
 
 	//#############------------------#############//
-
-	control.shared = pShared;
 
 	//#####Sincronismos#####//
 

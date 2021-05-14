@@ -104,7 +104,8 @@ typedef struct
 	Passag pass[MAX_PASS];			//passageiros
 	int maxPass, curPass;			//máximo de passageiros e tamanho atual
 	int velocidade;					//velocidade do avião
-	//TCHAR controlResponse[TAM_INPUT];//resposta do Control ao Aviao
+	int voar;						//estado de voo (0 - parado / 1 - em voo)
+	TCHAR controlResponse[TAM_INPUT];//resposta do Control ao Aviao
 } Plane;
 //---------------//
 
@@ -112,8 +113,10 @@ typedef struct
 typedef struct
 {
 	Plane hangar[MAX_PLANES];		//Aviões dentro do Aeroporto
+	int maxHang, curHang;			//máximo de aviões no Hangar e tamanho atual
 	Passag passageiros[MAX_PASS];	//Passageiros em espera no Aeroporto
-	TCHAR aeroName[TAM_INPUT];		//Nome do Aeroporto
+	int maxPass, curPass;			//máximo de passageiros e tamanho atual
+	TCHAR aeroName[TAM];			//Nome do Aeroporto
 	int Y, X;						//Coordenadas do Aeroporto no Mapa
 } MapUnit;
 //---------------------------//
@@ -139,7 +142,13 @@ typedef struct
 //Memória Partilhada//
 typedef struct
 {
-	SharedMsg msg;					//Aviões e as estruturas de mensagens
+	//SharedMsg msg;					//Aviões e as estruturas de mensagens
+
+	Plane planes[MAX_PLANES];		//Aviões e as estruturas de mensagens
+	int maxPlane, curPlane;			//Máximo de Aviões e tamanho atual
+	MapUnit map[MAX_AERO];			//Aeroportos
+	int maxAero, curAero;			//Máximo de Aeroportos e tamanho atual
+
 	TotalCircularBuffer tCircBuffer;//Buffer circular de mensagens para ler
 } SharedBuffer;
 //------------------//
@@ -155,10 +164,6 @@ typedef struct
 typedef struct {
 	Passag Pass[MAX_PASS_CONTROL];	//Passageiros
 	int maxPass, curPass;			//Máximo de Passageiros e tamanho atual
-	Plane planes[MAX_PLANES];		//Aviões e as estruturas de mensagens
-	int maxPlane, curPlane;			//Máximo de Aviões e tamanho atual
-	MapUnit map[MAX_AERO];			//Aeroportos
-	int maxAero, curAero;			//Máximo de Aeroportos e tamanho atual
 	SharedBuffer * shared;			//Memória Partilhada com Aviao
 } ControlData;
 //------------------------------//
@@ -238,18 +243,10 @@ DWORD WINAPI tratamentoDeComandos(LPVOID lpParam);
 //		1	-	Comando foi tratado
 int comandSwitcher(ControlData * control, TCHAR * comand);
 
+//Função de Eliminação de Aviões
 //Recebe:
-//		control - dados do control
-//Retorna:
-//		0 - nomes iguais
-//		1 - nomes diferentes
-int verificaIDPlane(ControlData* control, int tam, int id);
-
-
-//Recebe:
-//		controlo - dados do controlo
-//		tam	- tamanho do array de avioes
-//		id - id do aviao a eliminar
-int deletePlane(ControlData* control, int tam, int id);
+//		control	-	Dados do Control
+//		id		-	ID Plane a eliminar
+int deletePlane(ControlData* control, int id);
 
 #endif

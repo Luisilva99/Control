@@ -33,6 +33,7 @@
 #define MAX_VELO 3
 #define SETTINGS_AERO TEXT("maxAero")
 #define MAX_AERO 5
+#define MAX_PLANES 5
 //---------------------//
 
 //Variáveis da Sincronização//
@@ -48,6 +49,34 @@ typedef struct
 	TCHAR partida[TAM];				//aeroporto de partida
 } Passag;
 //---------------------//
+
+//Estrutura Avião//
+typedef struct
+{
+	int id;							//id do avião / processo do avião
+	TCHAR destino[TAM];				//aeroporto de destino
+	int next_X, next_Y;				//coordenadas / posição final
+	TCHAR partida[TAM];				//aeroporto de partida
+	int X, Y;						//coordenadas / posição atual
+	Passag pass[MAX_PASS];			//passageiros
+	int maxPass, curPass;			//máximo de passageiros e tamanho atual
+	int velocidade;					//velocidade do avião
+	int voar;						//estado de voo (0 - parado / 1 - em voo)
+	TCHAR controlResponse[TAM_INPUT];//resposta do Control ao Aviao
+} Plane;
+//---------------//
+
+//Estrutura da Célula do Mapa//
+typedef struct
+{
+	Plane hangar[MAX_PLANES];		//Aviões dentro do Aeroporto
+	int maxHang, curHang;			//máximo de aviões no Hangar e tamanho atual
+	Passag passageiros[MAX_PASS];	//Passageiros em espera no Aeroporto
+	int maxPass, curPass;			//máximo de passageiros e tamanho atual
+	TCHAR aeroName[TAM];			//Nome do Aeroporto
+	int Y, X;						//Coordenadas do Aeroporto no Mapa
+} MapUnit;
+//---------------------------//
 
 //Estruturas da Memória Partilhada//
 typedef struct {
@@ -67,19 +96,25 @@ typedef struct
 } SharedMsg;
 //-------------------------------//
 
-//Memória Partilhada//
-typedef struct
-{
-	SharedMsg msg;					//Aviões e as estruturas de mensagens
-	TotalCircularBuffer tCircBuffer;//Buffer circular de mensagens para ler
-} SharedBuffer;
-//------------------//
-
 //Variáveis Futuras Memória//
 #define TAM_SHARED sizeof(SharedBuffer)
 #define BUF_CIRCULAR sizeof(TotalCircularBuffer)
 #define MAP_TAM 1000
 //-------------------------//
+
+//Memória Partilhada//
+typedef struct
+{
+	//SharedMsg msg;					//Aviões e as estruturas de mensagens
+
+	Plane planes[MAX_PLANES];		//Aviões e as estruturas de mensagens
+	int maxPlane, curPlane;			//Máximo de Aviões e tamanho atual
+	MapUnit map[MAX_AERO];			//Aeroportos
+	int maxAero, curAero;			//Máximo de Aeroportos e tamanho atual
+
+	TotalCircularBuffer tCircBuffer;//Buffer circular de mensagens para ler
+} SharedBuffer;
+//------------------//
 
 //Estruturas de Dados//
 typedef struct
@@ -92,7 +127,7 @@ typedef struct
 	Passag pass[MAX_PASS];			//passageiros
 	int maxPass, curPass;			//máximo de passageiros e tamanho atual
 	int velocidade;					//velocidade do avião
-	//TCHAR controlResponse[TAM_INPUT];//resposta do Control ao Aviao
+	int voar;						//estado de voo (0 - parado / 1 - em voo)
 	SharedBuffer * buffer;			//memória partilhada
 } PlaneData;
 //-------------------//
@@ -108,31 +143,20 @@ int getIntInput();
 //		tam		-	Tamanho do Array de TCHAR
 void getTCHARInput(TCHAR * szMsg, int tam);
 
-//Função de Leitura do Máximo de Aeroportos
-//Retorna:
-//		Valor do máximo de Aeroportos a ser criados
-//Erros:
-//		-1	-	Chave não existia e foi criada pela primeira vez	-	erro previsivel
-//		-2	-	Não foi possível criar a chave	-	erro crítico
-//		-3	-	Leitura de regedit falhada	-	erro crítico
-int readAeroLimits();
-
-
-
-
-
+//Função de Verificação de introdução do Aeroporto de Partida
 //Recebe:
-//		control - dados do aviao
+//		aviao	-	Estrutura dos dados do programa
 //Retorna:
-//		0 - nomes iguais
-//		1 - nomes diferentes
-int verificaIDPlane(PlaneData* aviao, int tam);
+//		1	-	O aeroporto definido inicialmente existe na memória partilhada do Control
+//		0	-	O aeroporto definido inicialmente não existe na memória partilhada do Control
+int aviaoAeroVerify(PlaneData aviao);
 
-
+//Função Temporária de introdução dos dados do Aviao na Memória Partilhada
 //Recebe:
-//		controlo - dados do aviao
-//		tam	- tamanho do array de avioes
-//		id - id do aviao a eliminar
-int deletePlane(PlaneData* aviao, int tam, int id);
+//		aviao	-	Estrutura dos dados do programa
+//Retorna:
+//		0		-	Não foi possível introduzir o avião / existe algum erro no Sistema do Control
+//		1		-	Foi possível introduzir o avião numa posição livre
+int insertAviaoTemporary(PlaneData aviao);
 
 #endif

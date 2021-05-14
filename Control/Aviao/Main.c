@@ -13,7 +13,7 @@ int _tmain(int argc, TCHAR * argv[]) {
 
 
 	// Limites e Erros
-	int valorArgumento;
+	int valorArgumento, errorType = 0;
 
 
 	// Threads
@@ -33,9 +33,42 @@ int _tmain(int argc, TCHAR * argv[]) {
 	_setmode(_fileno(stderr), _O_WTEXT);
 #endif
 
+	//#####Inicialização de Dados#####//
+
+	ZeroMemory(aviao.partida, sizeof(TCHAR) * TAM);
+
+	ZeroMemory(aviao.destino, sizeof(TCHAR) * TAM);
+
+	aviao.curPass = 0;
+
+	aviao.id = (int)GetCurrentProcessId();
+
+	aviao.next_X = -1;
+
+	aviao.next_Y = -1;
+
+	for (int i = 0; i < MAX_PASS; i++)
+	{
+		ZeroMemory(&aviao.pass[i], sizeof(Passag));
+	}
+
+	aviao.X = -1;
+
+	aviao.Y = -1;
+
+	aviao.voar = 0;
+
+	//#####----------------------#####//
+
 	//#######Tratamento de Argumentos#######//
 
-	_tprintf(TEXT("\nNúmero de Argumentos: %d\n"), argc);//DEBUG
+	if (argc != 4) {
+		_tprintf(TEXT("\nNúmero de argumentos introduzidos incorreto!\nEncerrar Aviao.\n"));
+
+		_gettch();
+
+		return -1;
+	}
 
 	if (argv[1] != NULL)
 	{
@@ -51,7 +84,7 @@ int _tmain(int argc, TCHAR * argv[]) {
 		aviao.maxPass = valorArgumento;
 	}
 
-	if (argv[2] != NULL && argc > 1)
+	if (argv[2] != NULL)
 	{
 		valorArgumento = _tstoi(argv[2]);
 
@@ -65,7 +98,7 @@ int _tmain(int argc, TCHAR * argv[]) {
 		aviao.velocidade = valorArgumento;
 	}
 
-	if (argv[3] != NULL && argc > 2)
+	if (argv[3] != NULL)
 	{
 		_stprintf_s(aviao.partida, TAM, TEXT("%s"), argv[3]);
 
@@ -73,30 +106,6 @@ int _tmain(int argc, TCHAR * argv[]) {
 	}
 
 	//#######------------------------#######//
-
-	//#####Inicialização de Dados#####//
-
-	ZeroMemory(aviao.destino, sizeof(TCHAR) * TAM_INPUT);
-
-	aviao.curPass = 0;
-
-	aviao.id = (int) GetCurrentProcessId();
-
-	aviao.next_X = -1;
-
-	aviao.next_Y = -1;
-
-	for (int i = 0; i < MAX_PASS; i++)
-	{
-		ZeroMemory(&aviao.pass[i], sizeof(Passag));
-	}
-
-	aviao.X = -1;
-
-	aviao.Y = -1;
-
-
-	//#####----------------------#####//
 
 	//#############Memória Partilhada#############//
 
@@ -110,7 +119,10 @@ int _tmain(int argc, TCHAR * argv[]) {
 	{
 		_tprintf(TEXT("Could not open file mapping object (%d).\n"),
 			GetLastError());
-		return -3;
+
+		_gettch();
+
+		return -2;
 	}
 
 	pShared = (SharedBuffer *)MapViewOfFile(hMapFile,
@@ -126,7 +138,9 @@ int _tmain(int argc, TCHAR * argv[]) {
 
 		CloseHandle(hMapFile);
 
-		return -1;
+		_gettch();
+
+		return -3;
 	}
 
 	CopyMemory(&shared, pShared, TAM_SHARED);
@@ -137,6 +151,23 @@ int _tmain(int argc, TCHAR * argv[]) {
 
 	//#############------------------#############//
 
+	//###Verificações Iniciais###//
+
+	if (!aviaoAeroVerify(aviao))
+	{
+		_tprintf(TEXT("\nAeroporto introduzido não existe no Sistema do Control.\nEncerrar Aviao %d\n"), aviao.id);
+
+		UnmapViewOfFile(pShared);
+
+		CloseHandle(hMapFile);
+
+		_gettch();
+
+		return -4;
+	}
+
+	//###---------------------###//
+
 	//#####Sincronismos#####//
 
 	semaphoreGate = OpenSemaphore(SEMAPHORE_ALL_ACCESS, FALSE, CONTROL_SEMAPHORE_ENTRY);
@@ -144,6 +175,14 @@ int _tmain(int argc, TCHAR * argv[]) {
 	if (semaphoreGate == NULL)
 	{
 		_tprintf(TEXT("\nErro ao abrir o semaforo de sincronização!\nErro %d\n"), GetLastError());
+
+		UnmapViewOfFile(pShared);
+
+		CloseHandle(hMapFile);
+
+		_gettch();
+
+		return -5;
 	}
 
 	//#####------------#####//
@@ -151,7 +190,7 @@ int _tmain(int argc, TCHAR * argv[]) {
 
 	//##Entrada no Control##//
 
-	// Mutex de flag de aceitação no sistema
+	// Mutex de flag de aceitação no sistema / Escrita no Sistema
 	//-----------------WaitForSingleObject
 
 	// Modificar para ciclo de espera
@@ -166,15 +205,37 @@ int _tmain(int argc, TCHAR * argv[]) {
 
 	_gettch();
 
-	_tprintf(TEXT("\nO que se encontra escrito na memória partilhada (teste):\n\n"));
+	_tprintf(TEXT("\nInserir este avião no sítio certo.\n\n"));//DEBUG / Necessita de ir para o buffer circular
 
-	_tprintf(TEXT("\n%s\n"), aviao.buffer->msg.controlResponse);
+	if (!insertAviaoTemporary(aviao))
+	{
+		_tprintf(TEXT("\nErro ao inserir DEBUG aviao na memória partilhada.\n"));
+
+		if (ReleaseSemaphore(semaphoreGate, 1, NULL) == 0)
+		{
+			_tprintf(TEXT("\nLibertação do semaforo não foi um sucesso!\nError: %d\n"), GetLastError());
+		}
+
+		UnmapViewOfFile(pShared);
+
+		CloseHandle(hMapFile);
+
+		_gettch();
+
+		return -6;
+	}
+
+	_gettch();
+
+	_tprintf(TEXT("\nO que se encontra escrito na memória partilhada (teste):\n\n"));//DEBUG
+
+	_tprintf(TEXT("\n%s\n"), aviao.buffer->planes[aviao.buffer->curPlane].controlResponse);//DEBUG
 
 	_gettch();
 
 	if (ReleaseSemaphore(semaphoreGate, 1, NULL) == 0)
 	{
-		_tprintf(TEXT("\nLibertação do semaforo não foi um sucesso!\n"));
+		_tprintf(TEXT("\nLibertação do semaforo não foi um sucesso!\nError: %d\n"), GetLastError());
 	}
 
 	UnmapViewOfFile(pShared);
