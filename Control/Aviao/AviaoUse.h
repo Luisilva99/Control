@@ -10,23 +10,25 @@
 #include <winreg.h>
 #include "SO2_TP_DLL_2021.h"
 
-//Variáveis Futuras Memória//
+//Variï¿½veis Futuras Memï¿½ria//
 #define MAX_THREADS 20
 #define BUF_SIZE 256
 //-------------------------//
 
-//Variáveis da Sincronização//
+//Variï¿½veis da Sincronizaï¿½ï¿½o//
+#define PLANE_MOVE_SYNC TEXT("MoveSync")
+#define CONTROL_MUTEX_ENTRY TEXT("MutexEntry")
 #define CONTROL_SEMAPHORE_ENTRY TEXT("PlaneGate")
 //--------------------------//
 
 
-//Variáveis de Input//
+//Variï¿½veis de Input//
 #define TAM 100
 #define TAM_INPUT 500
 #define TAM_BUFF 5
 //------------------//
 
-//Variáveis do Registry//
+//Variï¿½veis do Registry//
 #define REG_SETTINGS_KEY TEXT("Software\\CONTROL\\SETTINGS")
 #define MAX_PASS 5
 #define MAX_VELO 3
@@ -35,7 +37,7 @@
 #define MAX_PLANES 5
 //---------------------//
 
-//Variáveis da Sincronização//
+//Variï¿½veis da Sincronizaï¿½ï¿½o//
 #define CONTROL_MUTEX TEXT("Nome")
 #define CONTROL_SEMAPHORE_ENTRY TEXT("PlaneGate")
 //--------------------------//
@@ -49,36 +51,36 @@ typedef struct
 } Passag;
 //---------------------//
 
-//Estrutura Avião//
+//Estrutura Aviï¿½o//
 typedef struct
 {
-	int id;							//id do avião / processo do avião
+	int id;							//id do aviï¿½o / processo do aviï¿½o
 	TCHAR destino[TAM];				//aeroporto de destino
-	int next_X, next_Y;				//coordenadas / posição seguinte
-	int final_X, final_Y;			//coordenadas / posição final
+	int next_X, next_Y;				//coordenadas / posiï¿½ï¿½o seguinte
+	int final_X, final_Y;			//coordenadas / posiï¿½ï¿½o final
 	TCHAR partida[TAM];				//aeroporto de partida
-	int X, Y;						//coordenadas / posição atual
+	int X, Y;						//coordenadas / posiï¿½ï¿½o atual
 	Passag pass[MAX_PASS];			//passageiros
-	int maxPass, curPass;			//máximo de passageiros e tamanho atual
-	int velocidade;					//velocidade do avião
+	int maxPass, curPass;			//mï¿½ximo de passageiros e tamanho atual
+	int velocidade;					//velocidade do aviï¿½o
 	int voar;						//estado de voo (0 - parado / 1 - em voo)
 	TCHAR controlResponse[TAM_INPUT];//resposta do Control ao Aviao
 } Plane;
 //---------------//
 
-//Estrutura da Célula do Mapa//
+//Estrutura da Cï¿½lula do Mapa//
 typedef struct
 {
-	Plane hangar[MAX_PLANES];		//Aviões dentro do Aeroporto
-	int maxHang, curHang;			//máximo de aviões no Hangar e tamanho atual
+	Plane hangar[MAX_PLANES];		//Aviï¿½es dentro do Aeroporto
+	int maxHang, curHang;			//mï¿½ximo de aviï¿½es no Hangar e tamanho atual
 	Passag passageiros[MAX_PASS];	//Passageiros em espera no Aeroporto
-	int maxPass, curPass;			//máximo de passageiros e tamanho atual
+	int maxPass, curPass;			//mï¿½ximo de passageiros e tamanho atual
 	TCHAR aeroName[TAM];			//Nome do Aeroporto
 	int Y, X;						//Coordenadas do Aeroporto no Mapa
 } MapUnit;
 //---------------------------//
 
-//Estruturas da Memória Partilhada//
+//Estruturas da Memï¿½ria Partilhada//
 typedef struct {
 	TCHAR msg[TAM_INPUT];
 } CircularBuffer;
@@ -96,21 +98,21 @@ typedef struct
 } SharedMsg;
 //-------------------------------//
 
-//Variáveis Futuras Memória//
+//Variï¿½veis Futuras Memï¿½ria//
 #define TAM_SHARED sizeof(SharedBuffer)
 #define BUF_CIRCULAR sizeof(TotalCircularBuffer)
 #define MAP_TAM 1000
 //-------------------------//
 
-//Memória Partilhada//
+//Memï¿½ria Partilhada//
 typedef struct
 {
-	//SharedMsg msg;					//Aviões e as estruturas de mensagens
+	//SharedMsg msg;					//Aviï¿½es e as estruturas de mensagens
 
-	Plane planes[MAX_PLANES];		//Aviões e as estruturas de mensagens
-	int maxPlane, curPlane;			//Máximo de Aviões e tamanho atual
+	Plane planes[MAX_PLANES];		//Aviï¿½es e as estruturas de mensagens
+	int maxPlane, curPlane;			//Mï¿½ximo de Aviï¿½es e tamanho atual
 	MapUnit map[MAX_AERO];			//Aeroportos
-	int maxAero, curAero;			//Máximo de Aeroportos e tamanho atual
+	int maxAero, curAero;			//Mï¿½ximo de Aeroportos e tamanho atual
 
 	TotalCircularBuffer tCircBuffer;//Buffer circular de mensagens para ler
 } SharedBuffer;
@@ -119,64 +121,73 @@ typedef struct
 //Estruturas de Dados//
 typedef struct
 {
-	int id;							//id do avião / processo do avião
+	int id;							//id do aviï¿½o / processo do aviï¿½o
 	TCHAR destino[TAM];				//aeroporto de chegada
-	int next_X, next_Y;				//coordenadas / posição seguinte
-	int final_X, final_Y;			//coordenadas / posição final
+	int next_X, next_Y;				//coordenadas / posiï¿½ï¿½o seguinte
+	int final_X, final_Y;			//coordenadas / posiï¿½ï¿½o final
 	TCHAR partida[TAM];				//aeroporto de partida
-	int X, Y;						//coordenadas / posição atual
+	int X, Y;						//coordenadas / posiï¿½ï¿½o atual
 	Passag pass[MAX_PASS];			//passageiros
-	int maxPass, curPass;			//máximo de passageiros e tamanho atual
-	int velocidade;					//velocidade do avião
+	int maxPass, curPass;			//mï¿½ximo de passageiros e tamanho atual
+	int velocidade;					//velocidade do aviï¿½o
 	int voar;						//estado de voo (0 - parado / 1 - em voo)
-	SharedBuffer * buffer;			//memória partilhada
+	HANDLE mutexMoveSync;			//mutex de sincronizaï¿½ï¿½o de movimentaï¿½ï¿½o do Aviï¿½o
+	SharedBuffer * buffer;			//memï¿½ria partilhada
 } PlaneData;
 //-------------------//
 
-//Função de Obtenção de inteiros
+//Funï¿½ï¿½o de Obtenï¿½ï¿½o de inteiros
 //Retorna:
 //		Inteiro
 int getIntInput();
 
-//Função de Obtenção de frases
+//Funï¿½ï¿½o de Obtenï¿½ï¿½o de frases
 //Recebe:
 //		szMsg	-	Array de TCHAR
 //		tam		-	Tamanho do Array de TCHAR
 void getTCHARInput(TCHAR * szMsg, int tam);
 
-//Função de Verificação de introdução do Aeroporto de Partida
+//Funï¿½ï¿½o de Verificaï¿½ï¿½o de introduï¿½ï¿½o do Aeroporto de Partida
 //Recebe:
 //		aviao	-	Estrutura dos dados do programa
 //Retorna:
-//		1	-	O aeroporto definido inicialmente existe na memória partilhada do Control
-//		0	-	O aeroporto definido inicialmente não existe na memória partilhada do Control
+//		1	-	O aeroporto definido inicialmente existe na memï¿½ria partilhada do Control
+//		0	-	O aeroporto definido inicialmente nï¿½o existe na memï¿½ria partilhada do Control
 int aviaoAeroVerify(PlaneData aviao);
 
-//Função Temporária de introdução dos dados do Aviao na Memória Partilhada
+//Funï¿½ï¿½o Temporï¿½ria de introduï¿½ï¿½o dos dados do Aviao na Memï¿½ria Partilhada
 //Recebe:
 //		aviao	-	Ponteiro da Estrutura dos dados do programa
 //Retorna:
-//		0		-	Não foi possível introduzir o avião / existe algum erro no Sistema do Control
-//		1		-	Foi possível introduzir o avião numa posição livre
+//		0		-	Nï¿½o foi possï¿½vel introduzir o aviï¿½o / existe algum erro no Sistema do Control
+//		1		-	Foi possï¿½vel introduzir o aviï¿½o numa posiï¿½ï¿½o livre
 int insertAviaoTemporary(PlaneData * aviao);
 
-//Função de apresentação da informação de um Passageiro
+//Funï¿½ï¿½o de apresentaï¿½ï¿½o da informaï¿½ï¿½o de um Passageiro
 //Recebe:
-//		plane	-	Estrutura de Plane com dados relacionados ao Avião
+//		plane	-	Estrutura de Plane com dados relacionados ao Aviï¿½o
 void listPlaneInfo(PlaneData plane);
 
 //Thread de Tratamento de Comandos
 //Recebe:
-//		lpParam	-	Dados do Control
+//		lpParam	-	Dados do PlaneData
 DWORD WINAPI tratamentoDeComandos(LPVOID lpParam);
 
-//Função de Tratamento de Comandos do Control
+//Funï¿½ï¿½o de Tratamento de Comandos do Aviao
 //Recebe:
-//		control	-	Dados do Control
+//		aviao	-	Dados do Aviao
 //		comand	-	Comando introduzido pelo utilizador para Tratamento
 //Retorna:
-//		0	-	Comando sem espaços -> temporário
+//		0	-	Comando sem espaï¿½os -> temporï¿½rio
 //		1	-	Comando foi tratado
 int comandSwitcher(PlaneData * aviao, TCHAR * comand);
+
+//Funï¿½ï¿½o de Verificaï¿½ï¿½o de posiï¿½ï¿½o vaga no Mapa para voar
+//Recebe:
+//		aviao	-	Dados do Aviao
+//Retorna:
+//		0	-	Posiï¿½ï¿½o encontra-se ocupada por um aviï¿½o
+//		1	-	Posiï¿½ï¿½o estï¿½ livre para voar
+int veryMapEmptyPlace(PlaneData * aviao);
 
 #endif

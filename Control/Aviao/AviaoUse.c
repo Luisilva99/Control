@@ -49,13 +49,23 @@ int insertAviaoTemporary(PlaneData * aviao) {
 		}
 	}
 
-	(aviao->buffer->planes)[i].id = aviao->id;
-	(aviao->buffer->planes)[i].maxPass = aviao->maxPass;
-	(aviao->buffer->planes)[i].velocidade = aviao->velocidade;
-
 	for (int j = 0; j < aviao->buffer->curAero; j++)
 	{
 		if (_tcscmp(aviao->partida, (aviao->buffer->map)[j].aeroName) == 0) {
+
+			if ((aviao->buffer->map)[j].curHang == (aviao->buffer->map)[j].maxHang)
+			{
+				_tprintf(TEXT("\nAeroporto encontra-se em lotação total!\n"));
+
+				return 0;
+			}
+
+			(aviao->buffer->planes)[i].id = aviao->id;
+
+			(aviao->buffer->planes)[i].maxPass = aviao->maxPass;
+
+			(aviao->buffer->planes)[i].velocidade = aviao->velocidade;
+
 			_stprintf_s((aviao->buffer->planes)[i].partida, TAM, TEXT("%s"), aviao->partida);
 
 			aviao->X = (aviao->buffer->map)[j].X;
@@ -78,10 +88,11 @@ int insertAviaoTemporary(PlaneData * aviao) {
 
 			_stprintf_s((aviao->buffer->map)[j].hangar[(aviao->buffer->map)[j].curHang].partida, TAM, TEXT("%s"), aviao->partida);
 
+			(aviao->buffer->map)[j].curHang++;
+
 			return 1;
 		}
 	}
-
 
 	return 0;
 }
@@ -93,9 +104,25 @@ void listPlaneInfo(PlaneData aviao) {
 	_tprintf(TEXT("\nPartida / Atual: %s"), aviao.partida);
 	_tprintf(TEXT("\nVelocidade: %d"), aviao.velocidade);
 	aviao.voar ? _tprintf(TEXT("\nEstado: Em voo")) : _tprintf(TEXT("\nEstado: Parado"));
-	_tprintf(TEXT("\nPosição Atual: [X=%d,Y=%d]"), aviao.X, aviao.Y);
-	!_tcslen(aviao.destino) ? _tprintf(TEXT("\nDestino  ainda não foi definidos!")) : _tprintf(TEXT("\nPosição Final: [X=%d,Y=%d]"), aviao.final_X, aviao.final_Y);
+	_tprintf(TEXT("\nPosição Atual: [X=%3d,Y=%3d]"), aviao.X, aviao.Y);
+	!_tcslen(aviao.destino) ? _tprintf(TEXT("\nDestino  ainda não foi definidos!")) : _tprintf(TEXT("\nPosição Final: [X=%3d,Y=%3d]"), aviao.final_X, aviao.final_Y);
 	_tprintf(TEXT("\nNº de Passageiros embarcados: %d\n__________________________________\n"), aviao.curPass);
+}
+
+
+int veryMapEmptyPlace(PlaneData * aviao) {
+	for (int i = 0; i < aviao->buffer->curPlane; i++)
+	{
+		if ((aviao->buffer->planes)[i].id != aviao->id)
+		{
+			if (((aviao->buffer->planes)[i].X == aviao->next_X) && ((aviao->buffer->planes)[i].Y == aviao->next_Y))
+			{
+				return 0;
+			}
+		}
+	}
+
+	return 1;
 }
 
 
@@ -226,24 +253,92 @@ int comandSwitcher(PlaneData * aviao, TCHAR * comand) {
 
 			(aviao->buffer->planes)[j].voar = aviao->voar;
 
-			//sinalizar thread de movimento e enviar as posições para Control buffer circular
+			//Envio de mensagem de inicio de viagem para o Buffer Circular
 
 			while (aviao->X != aviao->final_X && aviao->Y != aviao->final_Y)
 			{
-				_tprintf(TEXT("\nResultado de Movimentação: %d\n"), move((*aviao).X, (*aviao).Y, (*aviao).final_X, (*aviao).final_Y, &(*aviao).next_X, &(*aviao).next_Y));
+				WaitForSingleObject(aviao->mutexMoveSync, INFINITE);
 
-				aviao->X = aviao->next_X;
+				int times = 0;
 
-				aviao->Y = aviao->next_Y;
+				while (times < aviao->velocidade)
+				{
+					move((*aviao).X, (*aviao).Y, (*aviao).final_X, (*aviao).final_Y, &(*aviao).next_X, &(*aviao).next_Y);
+
+					int direction = 1;
+
+					while (!veryMapEmptyPlace(aviao))
+					{
+						switch (direction)
+						{
+						case 1:
+							if ((*aviao).X + 1 > MAP_TAM)
+							{
+								direction++;
+
+								break;
+							}
+
+							break;
+
+						case 2:
+							if (0 < (*aviao).X - 1)
+							{
+								direction++;
+
+								break;
+							}
+
+							break;
+
+						case 3:
+							if (0 < (*aviao).Y - 1)
+							{
+								direction++;
+
+								break;
+							}
+
+							break;
+
+						case 4:
+							if ((*aviao).Y + 1 > MAP_TAM)
+							{
+								direction++;
+
+								break;
+							}
+
+							break;
+
+						default:
+							break;
+						}
+					}
+
+					aviao->X = aviao->next_X;
+
+					aviao->Y = aviao->next_Y;
+
+					_tprintf(TEXT("\nAvião %d na posição [X=%3d;Y=%3d]\n"), aviao->id, aviao->X, aviao->Y);
+
+					times++;
+				}
+
+				ReleaseMutex(aviao->mutexMoveSync);
 			}
+
+			//Envio de mensagem de chegada ao destino para o Buffer Circular
 
 			return 1;
 		}
 		else if (_tcscmp(auxB, TEXT("embarque")) == 0)
 		{
-			//Mensagem ao Control para embarcar o máximo possível neste user
+			//Mensagem ao Buffer Circular para o Control embarcar o máximo possível neste user
 
 			_tprintf(TEXT("\nPlaceholder por enquanto.\n"));//DEBUG
+
+			//Cópia dos passageiros embarcados para este avião para a estrutura principal de info dele
 
 			return 1;
 		}

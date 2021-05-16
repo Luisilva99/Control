@@ -64,6 +64,7 @@
 
 
 //Variáveis de Input//
+#define POS_AERO_AREA 10
 #define TAM 100
 #define TAM_INPUT 500
 #define TAM_BUFF 5
@@ -80,7 +81,8 @@
 //---------------------//
 
 //Variáveis da Sincronização//
-#define CONTROL_MUTEX TEXT("Nome")
+#define PLANE_MOVE_SYNC TEXT("MoveSync")
+#define CONTROL_MUTEX_ENTRY TEXT("MutexEntry")
 #define CONTROL_SEMAPHORE_ENTRY TEXT("PlaneGate")
 //--------------------------//
 
@@ -165,6 +167,8 @@ typedef struct
 typedef struct {
 	Passag Pass[MAX_PASS_CONTROL];	//Passageiros
 	int maxPass, curPass;			//Máximo de Passageiros e tamanho atual
+	HANDLE entry;					//Mutex de aceitação de novos Aviões
+	int entryStopped;				//Flag de indicador de paragem de aceitação de novos Aviões
 	SharedBuffer * shared;			//Memória Partilhada com Aviao
 } ControlData;
 //------------------------------//
@@ -234,6 +238,11 @@ void listPlaneInfo(Plane plane);
 //Recebe:
 //		lpParam	-	Dados do Control
 DWORD WINAPI tratamentoDeComandos(LPVOID lpParam);
+
+//Thread de Buffer Circular
+//Recebe:
+//		lpParam	-	Dados do Control
+DWORD WINAPI bufferCircular(LPVOID lpParam);
 
 //Função de Tratamento de Comandos do Control
 //Recebe:
