@@ -319,6 +319,34 @@ int _tmain(int argc, TCHAR * argv[]) {
 
 	_tprintf(TEXT("\nCriação do mutex de permissão de entrada de aviões foi criado com sucesso!\n"));// DEBUG
 
+	control.systemShutdown = CreateEvent(
+		NULL,
+		TRUE,
+		FALSE,
+		KILLER_TRIGGER
+	);
+
+	if (control.systemShutdown == NULL)
+	{
+		_tprintf(TEXT("\nCriação do evento de terminação de todos os sistemas não foi criado com sucesso!\nErro %d\n"), GetLastError());
+
+		CloseHandle(control.entry);
+
+		CloseHandle(semaphoreGate);
+
+		CloseHandle(mutexMoveSync);
+
+		UnmapViewOfFile(pShared);
+
+		CloseHandle(hMapFile);
+
+		_gettch();
+
+		return -11;
+	}
+
+	_tprintf(TEXT("\nCriação do evento de terminação de todos os sistemas foi criado com sucesso!\n"));
+
 	//#####------------#####//
 
 	//######Lançamento das Threads######//
@@ -336,6 +364,8 @@ int _tmain(int argc, TCHAR * argv[]) {
 	{
 		_tprintf(TEXT("CreateThread failed, GLE=%d.\n"), GetLastError());
 
+		CloseHandle(control.systemShutdown);
+
 		CloseHandle(control.entry);
 
 		CloseHandle(semaphoreGate);
@@ -346,7 +376,7 @@ int _tmain(int argc, TCHAR * argv[]) {
 
 		CloseHandle(hMapFile);
 
-		return -11;
+		return -12;
 	}
 
 	//######----------------------######//
@@ -354,6 +384,8 @@ int _tmain(int argc, TCHAR * argv[]) {
 	WaitForSingleObject(hThread, INFINITE);
 
 	_tprintf(TEXT("\nLibertação das Threads criadas!\nLibertação dos HANDLES de sincronização!\nLibertação da Memória Partilhada!\n"));
+
+	CloseHandle(control.systemShutdown);
 
 	CloseHandle(control.entry);
 

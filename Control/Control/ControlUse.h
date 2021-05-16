@@ -81,6 +81,7 @@
 //---------------------//
 
 //Variáveis da Sincronização//
+#define KILLER_TRIGGER TEXT("KillAllSystems")
 #define PLANE_MOVE_SYNC TEXT("MoveSync")
 #define CONTROL_MUTEX_ENTRY TEXT("MutexEntry")
 #define CONTROL_SEMAPHORE_ENTRY TEXT("PlaneGate")
@@ -169,6 +170,7 @@ typedef struct {
 	int maxPass, curPass;			//Máximo de Passageiros e tamanho atual
 	HANDLE entry;					//Mutex de aceitação de novos Aviões
 	int entryStopped;				//Flag de indicador de paragem de aceitação de novos Aviões
+	HANDLE systemShutdown;			//Evento para terminar todos os programas
 	SharedBuffer * shared;			//Memória Partilhada com Aviao
 } ControlData;
 //------------------------------//
