@@ -110,7 +110,7 @@ int _tmain(int argc, TCHAR * argv[]) {
 	{
 		_stprintf_s(aviao.partida, TAM, TEXT("%s"), argv[3]);
 
-		_tprintf(TEXT("\nAeroporto inicial: %s\n"), aviao.partida);//DEBUG
+		_tprintf(TEXT("\nAeroporto de inicialização: %s\n"), aviao.partida);
 	}
 
 	//#######------------------------#######//
@@ -125,8 +125,7 @@ int _tmain(int argc, TCHAR * argv[]) {
 
 	if (hMapFile == NULL)
 	{
-		_tprintf(TEXT("Could not open file mapping object (%d).\n"),
-			GetLastError());
+		_tprintf(TEXT("Could not open file mapping object (%d).\n"), GetLastError());
 
 		_gettch();
 
@@ -141,8 +140,7 @@ int _tmain(int argc, TCHAR * argv[]) {
 
 	if (pShared == NULL)
 	{
-		_tprintf(TEXT("Could not map view of file (%d).\n"),
-			GetLastError());
+		_tprintf(TEXT("Could not map view of file (%d).\n"), GetLastError());
 
 		CloseHandle(hMapFile);
 
@@ -299,13 +297,15 @@ int _tmain(int argc, TCHAR * argv[]) {
 
 	_tprintf(TEXT("\nCriação do evento de iniciação de movimentação dos Aviões foi criado com sucesso!\n"));
 
-	//#####------------#####//
+	aviao.writeBuffer = OpenMutex(
+		MUTEX_ALL_ACCESS,
+		FALSE,
+		PLANE_MUTEX_WRITER
+	);
 
-	_tprintf(TEXT("\nInserir este avião no sítio certo.\n\n"));//DEBUG / Necessita de ir para o buffer circular
-
-	if (!insertAviaoTemporary(&aviao))//DEBUG / Temporariamente desta forma
+	if (aviao.writeBuffer == NULL)
 	{
-		_tprintf(TEXT("\nErro ao inserir aviao %d na memória partilhada.\n"), aviao.id);
+		_tprintf(TEXT("\nAbertura do mutex de sincronização de escrita para o Buffer Circular não foi criado com sucesso!\nErro %d\n"), GetLastError());
 
 		CloseHandle(aviao.eventMoveTrigger);
 
@@ -313,14 +313,7 @@ int _tmain(int argc, TCHAR * argv[]) {
 
 		CloseHandle(mutexEntry);
 
-		if (ReleaseSemaphore(semaphoreGate, 1, NULL) == 0)
-		{
-			_tprintf(TEXT("\nLibertação do semaforo não foi um sucesso!\nError: %d\n"), GetLastError());
-		}
-		else
-		{
-			CloseHandle(semaphoreGate);
-		}
+		CloseHandle(semaphoreGate);
 
 		UnmapViewOfFile(pShared);
 
@@ -331,20 +324,15 @@ int _tmain(int argc, TCHAR * argv[]) {
 		return -11;
 	}
 
-	//#####Threads#####//
+	_tprintf(TEXT("\nAbertura do mutex de sincronização de escrita para o Buffer Circular foi criado com sucesso!\n"));// DEBUG
 
-	hThread[0] = CreateThread(
-		NULL,
-		0,
-		tratamentoDeComandos,
-		(LPVOID)&aviao,
-		0,
-		&dwThread[0]
-	);
+	aviao.readBuffer = OpenSemaphore(SEMAPHORE_ALL_ACCESS, FALSE, CONTROL_SEMAPHORE_BUFFER_READER);
 
-	if (hThread[0] == NULL)
+	if (aviao.readBuffer == NULL)
 	{
-		_tprintf(TEXT("CreateThread failed, GLE=%d.\n"), GetLastError());
+		_tprintf(TEXT("\nErro ao abrir o semaforo de sincronização do Buffer Circular!\nErro %d\n"), GetLastError());
+
+		CloseHandle(aviao.writeBuffer);
 
 		CloseHandle(aviao.eventMoveTrigger);
 
@@ -352,14 +340,7 @@ int _tmain(int argc, TCHAR * argv[]) {
 
 		CloseHandle(mutexEntry);
 
-		if (ReleaseSemaphore(semaphoreGate, 1, NULL) == 0)
-		{
-			_tprintf(TEXT("\nLibertação do semaforo não foi um sucesso!\nError: %d\n"), GetLastError());
-		}
-		else
-		{
-			CloseHandle(semaphoreGate);
-		}
+		CloseHandle(semaphoreGate);
 
 		UnmapViewOfFile(pShared);
 
@@ -370,22 +351,17 @@ int _tmain(int argc, TCHAR * argv[]) {
 		return -12;
 	}
 
-	_tprintf(TEXT("\nCriação de Thread %d da linha de comandos foi um sucesso!\n"), dwThread[0]);
+	//#####------------#####//
 
-	hThread[1] = CreateThread(
-		NULL,
-		0,
-		movePlane,
-		(LPVOID)&aviao,
-		0,
-		&dwThread[1]
-	);
+	_tprintf(TEXT("\nInserir este avião no sítio certo.\n\n"));//DEBUG / Necessita de ir para o buffer circular
 
-	if (hThread[1] == NULL)
+	if (!insertAviaoTemporary(&aviao))//DEBUG / Temporariamente desta forma
 	{
-		_tprintf(TEXT("CreateMoveThread failed, GLE=%d.\n"), GetLastError());
+		_tprintf(TEXT("\nErro ao inserir aviao %d na memória partilhada.\n"), aviao.id);
 
-		CloseHandle(hThread[0]);
+		CloseHandle(aviao.readBuffer);
+
+		CloseHandle(aviao.writeBuffer);
 
 		CloseHandle(aviao.eventMoveTrigger);
 
@@ -411,21 +387,24 @@ int _tmain(int argc, TCHAR * argv[]) {
 		return -13;
 	}
 
-	_tprintf(TEXT("\nCriação de Thread %d do tratamento dos movimentos do Avião foi um sucesso!\n"), dwThread[1]);
+	//#####Threads#####//
 
-	hThread[2] = OpenEvent(
-		EVENT_ALL_ACCESS,
-		FALSE,
-		KILLER_TRIGGER
+	hThread[0] = CreateThread(
+		NULL,
+		0,
+		tratamentoDeComandos,
+		(LPVOID)&aviao,
+		0,
+		&dwThread[0]
 	);
 
-	if (hThread[2] == NULL)
+	if (hThread[0] == NULL)
 	{
-		_tprintf(TEXT("\nCriação do evento de Shutdown foi criado com sucesso!\nErro %d\n"), GetLastError());
+		_tprintf(TEXT("CreateThread failed, GLE=%d.\n"), GetLastError());
 
-		CloseHandle(hThread[1]);
+		CloseHandle(aviao.readBuffer);
 
-		CloseHandle(hThread[0]);
+		CloseHandle(aviao.writeBuffer);
 
 		CloseHandle(aviao.eventMoveTrigger);
 
@@ -451,6 +430,95 @@ int _tmain(int argc, TCHAR * argv[]) {
 		return -14;
 	}
 
+	_tprintf(TEXT("\nCriação de Thread %d da linha de comandos foi um sucesso!\n"), dwThread[0]);
+
+	hThread[1] = CreateThread(
+		NULL,
+		0,
+		movePlane,
+		(LPVOID)&aviao,
+		0,
+		&dwThread[1]
+	);
+
+	if (hThread[1] == NULL)
+	{
+		_tprintf(TEXT("CreateMoveThread failed, GLE=%d.\n"), GetLastError());
+
+		CloseHandle(hThread[0]);
+
+		CloseHandle(aviao.readBuffer);
+
+		CloseHandle(aviao.writeBuffer);
+
+		CloseHandle(aviao.eventMoveTrigger);
+
+		CloseHandle(aviao.mutexMoveSync);
+
+		CloseHandle(mutexEntry);
+
+		if (ReleaseSemaphore(semaphoreGate, 1, NULL) == 0)
+		{
+			_tprintf(TEXT("\nLibertação do semaforo não foi um sucesso!\nError: %d\n"), GetLastError());
+		}
+		else
+		{
+			CloseHandle(semaphoreGate);
+		}
+
+		UnmapViewOfFile(pShared);
+
+		CloseHandle(hMapFile);
+
+		_gettch();
+
+		return -15;
+	}
+
+	_tprintf(TEXT("\nCriação de Thread %d do tratamento dos movimentos do Avião foi um sucesso!\n"), dwThread[1]);
+
+	hThread[2] = OpenEvent(
+		EVENT_ALL_ACCESS,
+		FALSE,
+		KILLER_TRIGGER
+	);
+
+	if (hThread[2] == NULL)
+	{
+		_tprintf(TEXT("\nCriação do evento de Shutdown foi criado com sucesso!\nErro %d\n"), GetLastError());
+
+		CloseHandle(hThread[1]);
+
+		CloseHandle(hThread[0]);
+
+		CloseHandle(aviao.readBuffer);
+
+		CloseHandle(aviao.writeBuffer);
+
+		CloseHandle(aviao.eventMoveTrigger);
+
+		CloseHandle(aviao.mutexMoveSync);
+
+		CloseHandle(mutexEntry);
+
+		if (ReleaseSemaphore(semaphoreGate, 1, NULL) == 0)
+		{
+			_tprintf(TEXT("\nLibertação do semaforo não foi um sucesso!\nError: %d\n"), GetLastError());
+		}
+		else
+		{
+			CloseHandle(semaphoreGate);
+		}
+
+		UnmapViewOfFile(pShared);
+
+		CloseHandle(hMapFile);
+
+		_gettch();
+
+		return -16;
+	}
+
 	_tprintf(TEXT("\nCriação do evento Shutdown foi criado com sucesso!\n"));
 
 	//######----------------------######//
@@ -463,6 +531,10 @@ int _tmain(int argc, TCHAR * argv[]) {
 	{
 		CloseHandle(hThread[i]);
 	}
+
+	CloseHandle(aviao.readBuffer);
+
+	CloseHandle(aviao.writeBuffer);
 
 	CloseHandle(aviao.eventMoveTrigger);
 

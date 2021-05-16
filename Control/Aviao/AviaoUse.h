@@ -16,12 +16,13 @@
 //-------------------------//
 
 //Variáveis da Sincronização//
+#define CONTROL_SEMAPHORE_BUFFER_READER TEXT("ReadCircularBuffer")
+#define PLANE_MUTEX_WRITER TEXT("WriteCircularBuffer")
 #define KILLER_TRIGGER TEXT("KillAllSystems")
 #define PLANE_MOVE_SYNC TEXT("MoveSync")
 #define CONTROL_MUTEX_ENTRY TEXT("MutexEntry")
 #define CONTROL_SEMAPHORE_ENTRY TEXT("PlaneGate")
 //--------------------------//
-
 
 //Variáveis de Input//
 #define TAM 100
@@ -37,11 +38,6 @@
 #define MAX_AERO 5
 #define MAX_PLANES 5
 //---------------------//
-
-//Variáveis da Sincronização//
-#define CONTROL_MUTEX TEXT("Nome")
-#define CONTROL_SEMAPHORE_ENTRY TEXT("PlaneGate")
-//--------------------------//
 
 //Estrutura passageiros//
 typedef struct
@@ -90,13 +86,6 @@ typedef struct {
 	CircularBuffer buffer[TAM_BUFF];
 	int locReadAtual, locWriteAtual, maxBuffer;
 } TotalCircularBuffer;
-
-typedef struct
-{
-	int id;							//ID do user a receber
-	int X, Y;						//Coordenadas respondidas
-	TCHAR controlResponse[TAM_INPUT];//resposta do Control ao Aviao
-} SharedMsg;
 //-------------------------------//
 
 //Variáveis Futuras Memória//
@@ -108,8 +97,6 @@ typedef struct
 //Memória Partilhada//
 typedef struct
 {
-	//SharedMsg msg;					//Aviões e as estruturas de mensagens
-
 	Plane planes[MAX_PLANES];		//Aviões e as estruturas de mensagens
 	int maxPlane, curPlane;			//Máximo de Aviões e tamanho atual
 	MapUnit map[MAX_AERO];			//Aeroportos
@@ -122,19 +109,21 @@ typedef struct
 //Estruturas de Dados//
 typedef struct
 {
-	int id;							//id do avião / processo do avião
-	TCHAR destino[TAM];				//aeroporto de chegada
-	int next_X, next_Y;				//coordenadas / posição seguinte
-	int final_X, final_Y;			//coordenadas / posição final
-	TCHAR partida[TAM];				//aeroporto de partida
-	int X, Y;						//coordenadas / posição atual
-	Passag pass[MAX_PASS];			//passageiros
-	int maxPass, curPass;			//máximo de passageiros e tamanho atual
-	int velocidade;					//velocidade do avião
-	int voar;						//estado de voo (0 - parado / 1 - em voo)
-	HANDLE mutexMoveSync;			//mutex de sincronização de movimentação do Avião
-	HANDLE eventMoveTrigger;		//event para iniciar o ciclo de movimento do Avião
-	SharedBuffer * buffer;			//memória partilhada
+	int id;							//ID do avião / processo do avião
+	TCHAR destino[TAM];				//Aeroporto de chegada
+	int next_X, next_Y;				//Coordenadas / posição seguinte
+	int final_X, final_Y;			//Coordenadas / posição final
+	TCHAR partida[TAM];				//Aeroporto de partida
+	int X, Y;						//Coordenadas / posição atual
+	Passag pass[MAX_PASS];			//Passageiros
+	int maxPass, curPass;			//Máximo de passageiros e tamanho atual
+	int velocidade;					//Velocidade do avião
+	int voar;						//Estado de voo (0 - parado / 1 - em voo)
+	HANDLE mutexMoveSync;			//Mutex de sincronização de movimentação do Avião
+	HANDLE eventMoveTrigger;		//Event para iniciar o ciclo de movimento do Avião
+	HANDLE readBuffer;				//Semáforo de leitura do Buffer Circular (do lado do Control)
+	HANDLE writeBuffer;				//Mutex de escrita para o Buffer Circular
+	SharedBuffer * buffer;			//Memória Partilhada
 } PlaneData;
 //-------------------//
 
@@ -196,5 +185,11 @@ int comandSwitcher(PlaneData * aviao, TCHAR * comand);
 //		0	-	Posição encontra-se ocupada por um avião
 //		1	-	Posição está livre para voar
 int veryMapEmptyPlace(PlaneData * aviao);
+
+//Função de Escrita no Buffer Circular
+//Recebe:
+//		aviao	-	Dados do Aviao
+//		msg		-	Mensagem a ser enviada
+void writeInCircularBuffer(PlaneData * aviao, TCHAR * msg);
 
 #endif

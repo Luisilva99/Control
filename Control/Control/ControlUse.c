@@ -560,7 +560,6 @@ DWORD WINAPI tratamentoDeComandos(LPVOID lpParam)
 	{
 		_tprintf(TEXT("\n> "));
 		getTCHARInput(comando, TAM_INPUT);
-		//DEBUG - pode ocorrer aqui erro uma vez que o "comando" é modificado diretamente - se alguém introduzir "exit ok" a variável modificada terá "exit"
 		comandSwitcher(pDataArray, comando) ? _tprintf(TEXT("")) : _tprintf(TEXT("\nComando Incorreto.\n"));
 	} while (_tcscmp(comando, TEXT("exit")));
 
@@ -572,10 +571,254 @@ DWORD WINAPI tratamentoDeComandos(LPVOID lpParam)
 
 DWORD WINAPI bufferCircular(LPVOID lpParam)
 {
-	ControlData * pDataArray;
-	pDataArray = (ControlData*)lpParam;
+	ControlData * control;
+	control = (ControlData*)lpParam;
+
+	while (1)
+	{
+		WaitForSingleObject(control->readBuffer, INFINITE);
+
+		int i;
+
+		if ((control->shared->tCircBuffer.locReadAtual) == 0)
+		{
+			i = 0;
+		}
+		else
+		{
+			i = (control->shared->tCircBuffer.locReadAtual) % (control->shared->tCircBuffer.maxBuffer);
+		}
+
+		TCHAR * auxA;
+		TCHAR * auxB = _tcstok_s(control->shared->tCircBuffer.buffer[i].msg, TEXT(" "), &auxA);
+
+		if (auxB == NULL)
+		{
+			_stprintf_s(control->shared->tCircBuffer.buffer[i].msg, TAM_INPUT, TEXT("%s"), TEXT(""));
+
+			(control->shared->tCircBuffer.locReadAtual)++;
+
+			continue;
+		}
+
+		if (_tcscmp(auxB, TEXT("Embarcar")) == 0)
+		{
+			int id;
+
+			if ((auxB = _tcstok_s(NULL, TEXT(" "), &auxA)) != NULL)
+			{
+				id = _tstoi(auxB);
+
+				int i = 0, j = 0;
+
+				for (; i < control->shared->curPlane; i++)
+				{
+					if ((control->shared->planes)[i].id == id) {
+						break;
+					}
+				}
+
+				for (; j < control->shared->curAero; j++)
+				{
+					if (_tcscmp((control->shared->map)[j].aeroName, (control->shared->planes)[i].partida) == 0) {
+						break;
+					}
+				}
+
+				for (int h = 0; h < (control->shared->map)[j].curPass; h++)
+				{
+					if (_tcscmp((control->shared->map)[j].passageiros[h].destino, (control->shared->planes)[i].destino) == 0)
+					{
+						if ((control->shared->planes)[i].curPass < (control->shared->planes)[i].maxPass)
+						{
+							(control->shared->planes)[i].pass[(control->shared->planes)[i].curPass] = (control->shared->map)[j].passageiros[h];
+
+							(control->shared->planes)[i].curPass++;
+
+							for (int k = h; k < (control->shared->map)[j].curPass; k++)
+							{
+								(control->shared->map)[j].passageiros[k] = (control->shared->map)[j].passageiros[k + 1];
+							}
+
+							(control->shared->map)[j].passageiros[(control->shared->map)[j].curPass].tempo = 0;
+
+							_stprintf_s((control->shared->map)[j].passageiros[(control->shared->map)[j].curPass].partida, TAM, TEXT("%s"), TEXT(""));
+
+							_stprintf_s((control->shared->map)[j].passageiros[(control->shared->map)[j].curPass].destino, TAM, TEXT("%s"), TEXT(""));
+						}
+					}
+				}
+
+				(control->shared->map)[j].curPass = (control->shared->map)[j].curPass - (control->shared->planes)[i].curPass;
+			}
+		}
+		else if (_tcscmp(auxB, TEXT("Terminar")) == 0)
+		{
+			int id;
+
+			if ((auxB = _tcstok_s(NULL, TEXT(" "), &auxA)) != NULL)
+			{
+				id = _tstoi(auxB);
+
+				for (int i = 0; i < control->shared->curPlane; i++)
+				{
+					if ((control->shared->planes)[i].id == id)
+					{
+						if ((control->shared->planes)[i].voar)
+						{
+							_tprintf(TEXT("\nAvião %d sofreu um acidente e foi perdido!\n"), id);
+
+							deletePlane(control, id);
+						}
+						else
+						{
+							int k = 0, t = 0;
+
+							_tprintf(TEXT("\nPiloto do Avião %d reformou-se e foi perdido!\n"), id);
+
+							for (; k < control->shared->curAero; k++)
+							{
+								if (_tcscmp((control->shared->planes)[i].partida, (control->shared->map)[k].aeroName) == 0)
+								{
+									break;
+								}
+							}
+
+							for (; t < (control->shared->map)[k].curHang; t++)
+							{
+								if ((control->shared->map)[k].hangar[t].id == id)
+								{
+									for (int op = t; op < (control->shared->map)[k].curHang; op++)
+									{
+										(control->shared->map)[k].hangar[op] = (control->shared->map)[k].hangar[op + 1];
+									}
+
+									(control->shared->map)[k].hangar[(control->shared->map)[k].curHang].curPass = 0;
 
 
+									_stprintf_s((control->shared->map)[k].hangar[(control->shared->map)[k].curHang].destino, TAM, TEXT("%s"), TEXT(""));
+									_stprintf_s((control->shared->map)[k].hangar[(control->shared->map)[k].curHang].partida, TAM, TEXT("%s"), TEXT(""));
+									ZeroMemory((control->shared->map)[k].hangar[(control->shared->map)[k].curHang].pass, sizeof(Passag) * MAX_PASS);
+									(control->shared->map)[k].hangar[(control->shared->map)[k].curHang].curPass = 0;
+									(control->shared->map)[k].hangar[(control->shared->map)[k].curHang].id = 0;
+									(control->shared->map)[k].hangar[(control->shared->map)[k].curHang].maxPass = 0;
+									(control->shared->map)[k].hangar[(control->shared->map)[k].curHang].next_X = 0;
+									(control->shared->map)[k].hangar[(control->shared->map)[k].curHang].next_Y = 0;
+									(control->shared->map)[k].hangar[(control->shared->map)[k].curHang].final_X = 0;
+									(control->shared->map)[k].hangar[(control->shared->map)[k].curHang].final_Y = 0;
+									(control->shared->map)[k].hangar[(control->shared->map)[k].curHang].velocidade = 0;
+									(control->shared->map)[k].hangar[(control->shared->map)[k].curHang].X = 0;
+									(control->shared->map)[k].hangar[(control->shared->map)[k].curHang].Y = 0;
+									(control->shared->map)[k].hangar[(control->shared->map)[k].curHang].voar = 0;
+
+									(control->shared->map)[k].curHang--;
+
+									break;
+								}
+							}
+
+							deletePlane(control, id);
+						}
+					}
+				}
+			}
+		}
+		else if (_tcscmp(auxB, TEXT("viagemStart")) == 0)
+		{
+			int id;
+
+			if ((auxB = _tcstok_s(NULL, TEXT(" "), &auxA)) != NULL)
+			{
+				id = _tstoi(auxB);
+
+				if ((auxB = _tcstok_s(NULL, TEXT(" "), &auxA)) != NULL)
+				{
+					for (int i = 0; i < control->shared->curAero; i++)
+					{
+						if (_tcscmp((control->shared->map)[i].aeroName, auxB) == 0)
+						{
+							for (int k = 0; k < (control->shared->map)[i].curHang; k++)
+							{
+								(control->shared->map)[i].hangar[k] = (control->shared->map)[i].hangar[k + 1];
+							}
+
+							_stprintf_s((control->shared->map)[i].hangar[(control->shared->map)[i].curHang].destino, TAM, TEXT("%s"), TEXT(""));
+							_stprintf_s((control->shared->map)[i].hangar[(control->shared->map)[i].curHang].partida, TAM, TEXT("%s"), TEXT(""));
+							ZeroMemory((control->shared->map)[i].hangar[(control->shared->map)[i].curHang].pass, sizeof(Passag) * control->shared->planes[i].maxPass);
+							(control->shared->map)[i].hangar[(control->shared->map)[i].curHang].curPass = 0;
+							(control->shared->map)[i].hangar[(control->shared->map)[i].curHang].id = 0;
+							(control->shared->map)[i].hangar[(control->shared->map)[i].curHang].maxPass = 0;
+							(control->shared->map)[i].hangar[(control->shared->map)[i].curHang].next_X = 0;
+							(control->shared->map)[i].hangar[(control->shared->map)[i].curHang].next_Y = 0;
+							(control->shared->map)[i].hangar[(control->shared->map)[i].curHang].final_X = 0;
+							(control->shared->map)[i].hangar[(control->shared->map)[i].curHang].final_Y = 0;
+							(control->shared->map)[i].hangar[(control->shared->map)[i].curHang].velocidade = 0;
+							(control->shared->map)[i].hangar[(control->shared->map)[i].curHang].X = 0;
+							(control->shared->map)[i].hangar[(control->shared->map)[i].curHang].Y = 0;
+							(control->shared->map)[i].hangar[(control->shared->map)[i].curHang].voar = 0;
+
+							(control->shared->map)[i].curHang--;
+						}
+					}
+				}
+			}
+		}
+		else if (_tcscmp(auxB, TEXT("viagemEnd")) == 0)
+		{
+			int id;
+
+			if ((auxB = _tcstok_s(NULL, TEXT(" "), &auxA)) != NULL)
+			{
+				id = _tstoi(auxB);
+
+				int k = 0;
+
+				for (; k < control->shared->curPlane; k++)
+				{
+					if ((control->shared->planes)[k].id == id)
+					{
+						break;
+					}
+				}
+
+				if ((auxB = _tcstok_s(NULL, TEXT(" "), &auxA)) != NULL)
+				{
+					for (int i = 0; i < control->shared->curAero; i++)
+					{
+						if (_tcscmp((control->shared->map)[i].aeroName, auxB) == 0)
+						{
+							if ((control->shared->map)[i].maxHang == (control->shared->map)[i].curHang)
+							{
+								//DEBUG / ARRANJAR DEPO
+								continue;
+							}
+
+							_stprintf_s((control->shared->map)[i].hangar[(control->shared->map)[i].curHang].destino, TAM, TEXT("%s"), TEXT(""));
+							_stprintf_s((control->shared->map)[i].hangar[(control->shared->map)[i].curHang].partida, TAM, TEXT("%s"), (control->shared->planes)[k].destino);
+							ZeroMemory((control->shared->map)[i].hangar[(control->shared->map)[i].curHang].pass, sizeof(Passag) * control->shared->planes[i].maxPass);
+							(control->shared->map)[i].hangar[(control->shared->map)[i].curHang].curPass = 0;
+							(control->shared->map)[i].hangar[(control->shared->map)[i].curHang].id = (control->shared->planes)[k].id;
+							(control->shared->map)[i].hangar[(control->shared->map)[i].curHang].maxPass = (control->shared->planes)[k].maxPass;
+							(control->shared->map)[i].hangar[(control->shared->map)[i].curHang].next_X = 0;
+							(control->shared->map)[i].hangar[(control->shared->map)[i].curHang].next_Y = 0;
+							(control->shared->map)[i].hangar[(control->shared->map)[i].curHang].final_X = 0;
+							(control->shared->map)[i].hangar[(control->shared->map)[i].curHang].final_Y = 0;
+							(control->shared->map)[i].hangar[(control->shared->map)[i].curHang].velocidade = (control->shared->planes)[k].velocidade;
+							(control->shared->map)[i].hangar[(control->shared->map)[i].curHang].X = (control->shared->map)[i].X;
+							(control->shared->map)[i].hangar[(control->shared->map)[i].curHang].Y = (control->shared->map)[i].Y;
+							(control->shared->map)[i].hangar[(control->shared->map)[i].curHang].voar = 0;
+
+							(control->shared->map)[i].curHang++;
+						}
+					}
+				}
+			}
+		}
+
+		_stprintf_s(control->shared->tCircBuffer.buffer[i].msg, TAM_INPUT, TEXT("%s"), TEXT(""));
+
+		(control->shared->tCircBuffer.locReadAtual)++;
+	}
 
 	return 0;
 }
@@ -590,7 +833,7 @@ int deletePlane(ControlData* control, int id) {
 			{
 				_stprintf_s(control->shared->planes[i].destino, TAM, TEXT("%s"), TEXT(""));
 				_stprintf_s(control->shared->planes[i].partida, TAM, TEXT("%s"), TEXT(""));
-				ZeroMemory(control->shared->planes[i].pass, sizeof(Passag) * MAX_PASS);
+				ZeroMemory(control->shared->planes[i].pass, sizeof(Passag) * control->shared->planes[i].maxPass);
 				control->shared->planes[i].curPass = 0;
 				control->shared->planes[i].id = 0;
 				control->shared->planes[i].maxPass = 0;
@@ -601,8 +844,9 @@ int deletePlane(ControlData* control, int id) {
 				control->shared->planes[i].velocidade = 0;
 				control->shared->planes[i].X = 0;
 				control->shared->planes[i].Y = 0;
+				control->shared->planes[i].voar = 0;
 
-				control->shared->curPlane -= 1;
+				control->shared->curPlane--;
 
 				return 1;
 			}
@@ -617,7 +861,7 @@ int deletePlane(ControlData* control, int id) {
 
 				_stprintf_s(control->shared->planes[j].destino, TAM, TEXT("%s"), TEXT(""));
 				_stprintf_s(control->shared->planes[j].partida, TAM, TEXT("%s"), TEXT(""));
-				ZeroMemory(control->shared->planes[j].pass, sizeof(Passag) * MAX_PASS);
+				ZeroMemory(control->shared->planes[j].pass, sizeof(Passag) * control->shared->planes[i].maxPass);
 				control->shared->planes[j].curPass = 0;
 				control->shared->planes[j].id = 0;
 				control->shared->planes[j].maxPass = 0;
@@ -628,8 +872,9 @@ int deletePlane(ControlData* control, int id) {
 				control->shared->planes[j].velocidade = 0;
 				control->shared->planes[j].X = 0;
 				control->shared->planes[j].Y = 0;
+				control->shared->planes[j].voar = 0;
 
-				control->shared->curPlane -= 1;
+				control->shared->curPlane--;
 
 				return 1;
 			}

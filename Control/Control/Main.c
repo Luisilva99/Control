@@ -19,10 +19,11 @@ int _tmain(int argc, TCHAR * argv[]) {
 	// Sincroniza��o
 	HANDLE semaphoreGate;
 	HANDLE mutexMoveSync;
+	HANDLE mutexWriters;
 
 	// Threads
-	HANDLE hThread;
-	DWORD dwThread;
+	HANDLE hThread[2];
+	DWORD dwThread[2];
 
 	// Dados do Control
 	ControlData control;
@@ -71,11 +72,8 @@ int _tmain(int argc, TCHAR * argv[]) {
 
 	//#######Tratamento de Argumentos#######//
 
-	_tprintf(TEXT("\nNúmero de Argumentos: %d\n"), argc);//DEBUG
-
 	if (argv[1] != NULL)
 	{
-		//Limitar aqui para o máximo definido no programa//DEBUG
 		valorArgumento = _tstoi(argv[1]);
 
 		if (valorArgumento > MAX_AERO || valorArgumento <= 0)
@@ -170,6 +168,8 @@ int _tmain(int argc, TCHAR * argv[]) {
 
 	shared.maxPlane = maxPlane;
 
+	shared.tCircBuffer.maxBuffer = TAM_BUFF;
+
 	for (int i = 0; i < shared.maxAero; i++)
 	{
 		shared.map[i].maxHang = MAX_PLANES;
@@ -206,7 +206,7 @@ int _tmain(int argc, TCHAR * argv[]) {
 	}
 	else if (GetLastError() == ERROR_ALREADY_EXISTS)
 	{
-		_tprintf(TEXT("Já existe uma execu��o em curso.\nVou encerrar!\n"));
+		_tprintf(TEXT("Já existe uma execução em curso.\nVou encerrar!\n"));
 
 		CloseHandle(hMapFile);
 
@@ -215,7 +215,6 @@ int _tmain(int argc, TCHAR * argv[]) {
 		return -6;
 	}
 
-	//Primeiro para a memória partilhada//DEBUG
 	pShared = (SharedBuffer *)MapViewOfFile(hMapFile,	// handle to map object
 		FILE_MAP_ALL_ACCESS,				// read/write permission
 		0,									// Por onde o resto a mais da memória pode ser mapeada
@@ -347,22 +346,83 @@ int _tmain(int argc, TCHAR * argv[]) {
 
 	_tprintf(TEXT("\nCriação do evento de terminação de todos os sistemas foi criado com sucesso!\n"));
 
+	mutexWriters = CreateMutex(
+		NULL,
+		FALSE,
+		PLANE_MUTEX_WRITER
+	);
+
+	if (mutexWriters == NULL)
+	{
+		_tprintf(TEXT("\nMutex de escrita no Buffer Circular não foi criado com sucesso!\nErro %d\n"), GetLastError());
+
+		CloseHandle(control.systemShutdown);
+
+		CloseHandle(semaphoreGate);
+
+		CloseHandle(mutexMoveSync);
+
+		UnmapViewOfFile(pShared);
+
+		CloseHandle(hMapFile);
+
+		_gettch();
+
+		return -12;
+	}
+
+	_tprintf(TEXT("\nMutex de escrita no Buffer Circular foi criado com sucesso!\n"));// DEBUG
+
+	control.readBuffer = CreateSemaphore(
+		NULL,
+		0,
+		TAM_BUFF,
+		CONTROL_SEMAPHORE_BUFFER_READER
+	);
+
+	if (control.readBuffer == NULL)
+	{
+		_tprintf(TEXT("\nSemáforo de leitura do Buffer Circular não foi criado com sucesso!\nErro %d\n"), GetLastError());
+
+		CloseHandle(mutexWriters);
+
+		CloseHandle(control.systemShutdown);
+
+		CloseHandle(semaphoreGate);
+
+		CloseHandle(mutexMoveSync);
+
+		UnmapViewOfFile(pShared);
+
+		CloseHandle(hMapFile);
+
+		_gettch();
+
+		return -13;
+	}
+
+	_tprintf(TEXT("\nSemáforo de leitura do Buffer Circular foi criado com sucesso!\n"));// DEBUG
+
 	//#####------------#####//
 
 	//######Lançamento das Threads######//
 
-	hThread = CreateThread(
+	hThread[0] = CreateThread(
 		NULL,
 		0,
 		tratamentoDeComandos,
 		(LPVOID)&control,
 		0,
-		&dwThread
+		&dwThread[0]
 	);
 
-	if (hThread == NULL)
+	if (hThread[0] == NULL)
 	{
 		_tprintf(TEXT("CreateThread failed, GLE=%d.\n"), GetLastError());
+
+		CloseHandle(control.readBuffer);
+
+		CloseHandle(mutexWriters);
 
 		CloseHandle(control.systemShutdown);
 
@@ -376,14 +436,57 @@ int _tmain(int argc, TCHAR * argv[]) {
 
 		CloseHandle(hMapFile);
 
-		return -12;
+		return -14;
+	}
+
+	hThread[1] = CreateThread(
+		NULL,
+		0,
+		bufferCircular,
+		(LPVOID)&control,
+		0,
+		&dwThread[1]
+	);
+
+	if (hThread[1] == NULL)
+	{
+		_tprintf(TEXT("CreateBufferThread failed, GLE=%d.\n"), GetLastError());
+
+		CloseHandle(hThread[0]);
+
+		CloseHandle(control.readBuffer);
+
+		CloseHandle(mutexWriters);
+
+		CloseHandle(control.systemShutdown);
+
+		CloseHandle(control.entry);
+
+		CloseHandle(semaphoreGate);
+
+		CloseHandle(mutexMoveSync);
+
+		UnmapViewOfFile(pShared);
+
+		CloseHandle(hMapFile);
+
+		return -15;
 	}
 
 	//######----------------------######//
 
-	WaitForSingleObject(hThread, INFINITE);
+	WaitForMultipleObjects(2, hThread, FALSE, INFINITE);
 
 	_tprintf(TEXT("\nLibertação das Threads criadas!\nLibertação dos HANDLES de sincronização!\nLibertação da Memória Partilhada!\n"));
+
+	for (int i = 0; i < 2; i++)
+	{
+		CloseHandle(hThread[i]);
+	}
+
+	CloseHandle(control.readBuffer);
+
+	CloseHandle(mutexWriters);
 
 	CloseHandle(control.systemShutdown);
 
