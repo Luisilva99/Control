@@ -18,6 +18,7 @@ int _tmain(int argc, TCHAR * argv[]) {
 
 	// Sincroniza��o
 	HANDLE semaphoreGate;
+	HANDLE mutexMoveSync;
 
 	// Threads
 	HANDLE hThread;
@@ -62,7 +63,7 @@ int _tmain(int argc, TCHAR * argv[]) {
 		{
 			_tprintf(TEXT("\nErro crítico! - ERRO 2 - Tipo %d\n"), tipoErro);
 
-			return -1;
+			return -2;
 		}
 	}
 
@@ -103,7 +104,7 @@ int _tmain(int argc, TCHAR * argv[]) {
 				{
 					_tprintf(TEXT("\nErro crítico! - ERRO 1 - Tipo %d\n"), tipoErro);
 
-					return -1;
+					return -3;
 				}
 			}
 		}
@@ -140,7 +141,7 @@ int _tmain(int argc, TCHAR * argv[]) {
 				{
 					_tprintf(TEXT("\nErro crítico! - ERRO 2 - Tipo %d\n"), tipoErro);
 
-					return -1;
+					return -4;
 				}
 			}
 		}
@@ -160,6 +161,8 @@ int _tmain(int argc, TCHAR * argv[]) {
 	control.curPass = 0;
 
 	control.maxPass = MAX_PASS_CONTROL;
+
+	control.entryStopped = 0;
 
 	ZeroMemory(&shared, sizeof(SharedBuffer));
 
@@ -193,9 +196,13 @@ int _tmain(int argc, TCHAR * argv[]) {
 
 	if (hMapFile == NULL)
 	{
-		_tprintf(TEXT("Could not create file mapping object (%d).\n"),
-			GetLastError());
-		return -3;
+		_tprintf(TEXT("Could not create file mapping object (%d).\n"), GetLastError());
+
+		CloseHandle(hMapFile);
+
+		_gettch();
+
+		return -5;
 	}
 	else if (GetLastError() == ERROR_ALREADY_EXISTS)
 	{
@@ -203,9 +210,9 @@ int _tmain(int argc, TCHAR * argv[]) {
 
 		CloseHandle(hMapFile);
 
-		_gettch();		//programa fica a espera dum input, s� avan�a quando for pressionado uma tecla
+		_gettch();
 
-		return -2;
+		return -6;
 	}
 
 	//Primeiro para a memória partilhada//DEBUG
@@ -217,12 +224,15 @@ int _tmain(int argc, TCHAR * argv[]) {
 
 	if (pShared == NULL)
 	{
-		_tprintf(TEXT("Could not map view of file (%d).\n"),
-			GetLastError());
+		_tprintf(TEXT("Could not map view of file (%d).\n"), GetLastError());
+
+		UnmapViewOfFile(pShared);
 
 		CloseHandle(hMapFile);
 
-		return -1;
+		_gettch();
+
+		return -7;
 	}
 
 	CopyMemory(pShared, &shared, sizeof(SharedBuffer));
@@ -235,6 +245,29 @@ int _tmain(int argc, TCHAR * argv[]) {
 
 	//#####Sincronismos#####//
 
+	mutexMoveSync = CreateMutex(
+		NULL,
+		FALSE,
+		PLANE_MOVE_SYNC
+	);
+
+	if (mutexMoveSync == NULL)
+	{
+		_tprintf(TEXT("\nCriação do mutex de sincronização de movimentação dos Aviões não foi criado com sucesso!\nErro %d\n"), GetLastError());
+
+		CloseHandle(mutexMoveSync);
+
+		UnmapViewOfFile(pShared);
+
+		CloseHandle(hMapFile);
+
+		_gettch();
+
+		return -8;
+	}
+
+	_tprintf(TEXT("\nCriação do mutex de sincronização de movimentação dos Aviões foi criado com sucesso!\n"));// DEBUG
+
 	semaphoreGate = CreateSemaphore(
 		NULL,
 		maxPlane,
@@ -246,10 +279,45 @@ int _tmain(int argc, TCHAR * argv[]) {
 	{
 		_tprintf(TEXT("\nCriação do semaforo de entrada de aviões não foi criado com sucesso!\nErro %d\n"), GetLastError());
 
-		return -1;
+		CloseHandle(semaphoreGate);
+
+		CloseHandle(mutexMoveSync);
+
+		UnmapViewOfFile(pShared);
+
+		CloseHandle(hMapFile);
+
+		_gettch();
+
+		return -9;
 	}
 
 	_tprintf(TEXT("\nCriação do semaforo de entrada de aviões foi criado com sucesso!\n"));// DEBUG
+
+	control.entry = CreateMutex(
+		NULL,
+		FALSE,
+		CONTROL_MUTEX_ENTRY
+	);
+
+	if (control.entry == NULL)
+	{
+		_tprintf(TEXT("\nCriação do mutex de permissão de entrada de aviões não foi criado com sucesso!\nErro %d\n"), GetLastError());
+
+		CloseHandle(semaphoreGate);
+
+		CloseHandle(mutexMoveSync);
+
+		UnmapViewOfFile(pShared);
+
+		CloseHandle(hMapFile);
+
+		_gettch();
+
+		return -10;
+	}
+
+	_tprintf(TEXT("\nCriação do mutex de permissão de entrada de aviões foi criado com sucesso!\n"));// DEBUG
 
 	//#####------------#####//
 
@@ -267,22 +335,31 @@ int _tmain(int argc, TCHAR * argv[]) {
 	if (hThread == NULL)
 	{
 		_tprintf(TEXT("CreateThread failed, GLE=%d.\n"), GetLastError());
-		return -8;
+
+		CloseHandle(control.entry);
+
+		CloseHandle(semaphoreGate);
+
+		CloseHandle(mutexMoveSync);
+
+		UnmapViewOfFile(pShared);
+
+		CloseHandle(hMapFile);
+
+		return -11;
 	}
 
 	//######----------------------######//
 
 	WaitForSingleObject(hThread, INFINITE);
 
-	_tprintf(TEXT("\nLibertação das Threads criadas!\n"));
+	_tprintf(TEXT("\nLibertação das Threads criadas!\nLibertação dos HANDLES de sincronização!\nLibertação da Memória Partilhada!\n"));
 
-	//########Libertação da Memória Alocada########//
-
-	_tprintf(TEXT("\nLibertação da memória física do Control foi um Sucesso!\n"));// DEBUG
-
-	//########-----------------------------########//
+	CloseHandle(control.entry);
 
 	CloseHandle(semaphoreGate);
+
+	CloseHandle(mutexMoveSync);
 
 	UnmapViewOfFile(pShared);
 

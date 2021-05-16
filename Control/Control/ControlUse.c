@@ -262,9 +262,9 @@ int createPlaneLimits(int valor) {
 void listPassInfo(Passag pass) {
 	if (_tcscmp(pass.partida, TEXT("")) != 0)
 	{
-		_tprintf(TEXT("\nChegada / Atual: %s"), pass.destino);
+		_tprintf(TEXT("\n--------------------\nChegada / Atual: %s"), pass.destino);
 		_tprintf(TEXT("\nPartida / Destino: %s"), pass.partida);
-		_tprintf(TEXT("\nTempo de Espera: %d\n"), pass.tempo);
+		_tprintf(TEXT("\nTempo de Espera: %d\n--------------------\n"), pass.tempo);
 	}
 }
 
@@ -272,7 +272,7 @@ void listPassInfo(Passag pass) {
 void listPlaneInfo(Plane plane) {
 	if (plane.id != 0)
 	{
-		_tprintf(TEXT("\nID: %d"), plane.id);
+		_tprintf(TEXT("\n#############\nID: %d"), plane.id);
 		_tprintf(TEXT("\nChegada / Destino: %s"), plane.destino);
 		_tprintf(TEXT("\nPartida / Atual: %s"), plane.partida);
 		_tprintf(TEXT("\nVelocidade: %d"), plane.velocidade);
@@ -283,7 +283,7 @@ void listPlaneInfo(Plane plane) {
 			_tprintf(TEXT("\nPosição seguinte: [X=%d,Y=%d]"), plane.next_X, plane.next_Y);
 		}
 		!_tcslen(plane.destino) ? _tprintf(TEXT("")) : _tprintf(TEXT("\nPosição final: [X=%d,Y=%d]"), plane.final_X, plane.final_Y);
-		_tprintf(TEXT("\nNº de Passageiros embarcados: %d\n"), plane.curPass);
+		_tprintf(TEXT("\nNº de Passageiros embarcados: %d\n#############\n"), plane.curPass);
 	}
 }
 
@@ -308,7 +308,7 @@ int comandSwitcher(ControlData * control, TCHAR * comand) {
 		if ((auxB = _tcstok_s(NULL, TEXT(" "), &auxA)) != NULL)
 		{
 			if (_tcscmp(auxB, TEXT("DEBUG")) == 0) {
-				_tprintf(TEXT("\nDEBUG MSG - [Temporário] Introduz uma mensagem no primeiro avião.\n"));
+				_tprintf(TEXT("\nDEBUG MSG - [Temporário | Deprecated] Introduz uma mensagem no primeiro avião.\n"));
 			}
 		}
 
@@ -326,12 +326,36 @@ int comandSwitcher(ControlData * control, TCHAR * comand) {
 		{
 			if (_tcscmp(auxB, TEXT("start")) == 0)
 			{
-				_tprintf(TEXT("\nAviões são permitidos entrar no Sistema.\n"));
+				if (control->entryStopped == 0)
+				{
+					_tprintf(TEXT("\nAviões continuam a ser permitidos entrar no Sistema.\n"));
+				}
+				else
+				{
+					ReleaseMutex(control->entry);
+
+					control->entryStopped = 0;
+
+					_tprintf(TEXT("\nAviões são permitidos entrar no Sistema.\n"));
+				}
+
 				return 1;
 			}
 			else if (_tcscmp(auxB, TEXT("stop")) == 0)
 			{
-				_tprintf(TEXT("\nAviões não são permitidos entrar no Sistema.\n"));
+				if (control->entryStopped == 1)
+				{
+					_tprintf(TEXT("\nAviões continuam a não ser permitidos entrar no Sistema.\n"));
+				}
+				else
+				{
+					WaitForSingleObject(control->entry, INFINITE);
+
+					control->entryStopped = 1;
+
+					_tprintf(TEXT("\nAviões não são permitidos entrar no Sistema.\n"));
+				}
+
 				return 1;
 			}
 		}
@@ -365,6 +389,7 @@ int comandSwitcher(ControlData * control, TCHAR * comand) {
 				int index = 0, X = -1, Y = -1;
 				TCHAR nome[TAM_INPUT];
 
+				//<Verificação de Nomes>//
 				for (; index < control->shared->maxAero; index++)
 				{
 					if (_tcscmp((control->shared->map + index)->aeroName, auxB) == 0)
@@ -375,14 +400,16 @@ int comandSwitcher(ControlData * control, TCHAR * comand) {
 					}
 					else if (_tcscmp((control->shared->map + index)->aeroName, TEXT("")) == 0)
 					{
-						_tprintf(TEXT("\nEncontrei um espaço vazio.\nNome válido.\n"));//DEBUG
+						_tprintf(TEXT("\nEncontrei um espaço vazio.\nNome válido.\n"));
 
 						_stprintf_s(nome, TAM_INPUT, TEXT("%s"), auxB);
 
 						break;
 					}
 				}
+				//<####################>//
 
+				//<Verificação das Coordenadas>//
 				if ((auxB = _tcstok_s(NULL, TEXT(" "), &auxA)) != NULL)
 				{
 					X = _tstoi(auxB);
@@ -403,26 +430,37 @@ int comandSwitcher(ControlData * control, TCHAR * comand) {
 
 				if ((X < 0 || X > MAP_TAM) || (Y < 0 || Y > MAP_TAM))
 				{
-					_tprintf(TEXT("\nCoordenadas inválidas!\n"));//DEBUG
+					_tprintf(TEXT("\nCoordenadas inválidas!\n"));
 
 					return 0;
 				}
+				//<###########################>//
 
+				//<Verificação de Área de Distanciamento>//
 				for (int i = 0; i < control->shared->curAero; i++)
 				{
-					if (((control->shared->map + i)->X == X) && ((control->shared->map + i)->Y == Y))
+					int left_X = ((control->shared->map)[i].X - POS_AERO_AREA);
+
+					int right_X = ((control->shared->map)[i].X + POS_AERO_AREA);
+
+					int bottom_Y = ((control->shared->map)[i].Y - POS_AERO_AREA);
+
+					int top_Y = ((control->shared->map)[i].Y + POS_AERO_AREA);
+
+					if ((left_X < X && X < right_X) && (bottom_Y < Y && Y < top_Y))
 					{
-						_tprintf(TEXT("\nCoordenadas ocupadas!\n"));//DEBUG
+						_tprintf(TEXT("\nCoordenadas ocupadas!\nEspaço aéreo ocupado por outro Aeroporto.\n"));
 
 						return 0;
 					}
 				}
+				//<#####################################>//
 
-				_stprintf_s((control->shared->map + index)->aeroName, TAM, TEXT("%s"), nome);
+				_stprintf_s((control->shared->map)[index].aeroName, TAM, TEXT("%s"), nome);
 
-				(control->shared->map + index)->X = X;
+				(control->shared->map)[index].X = X;
 
-				(control->shared->map + index)->Y = Y;
+				(control->shared->map)[index].Y = Y;
 
 				(control->shared->curAero)++;
 
@@ -449,18 +487,18 @@ int comandSwitcher(ControlData * control, TCHAR * comand) {
 
 		for (int i = 0; i < control->shared->curAero; i++)
 		{
-			_tprintf(TEXT("\n\nAeroporto %s\n"), (control->shared->map + i)->aeroName);
-			_tprintf(TEXT("\nPassageiros dentro do Aeroporto:\n"));
-			for (int j = 0; j < MAX_PASS; j++)
+			_tprintf(TEXT("\n_________________________________\nAeroporto %s\n"), (control->shared->map)[i].aeroName);
+			_tprintf(TEXT("\nPassageiros dentro do Aeroporto: %d\n"), (control->shared->map)[i].curPass);
+			for (int j = 0; j < (control->shared->map)[i].curPass; j++)
 			{
-				listPassInfo((control->shared->map + i)->passageiros[j]);
+				listPassInfo((control->shared->map)[i].passageiros[j]);
 			}
-			_tprintf(TEXT("\nAviões dentro do Aeroporto:\n"));
-			for (int j = 0; j < MAX_PASS; j++)
+			_tprintf(TEXT("\nAviões dentro do Aeroporto: %d\n"), (control->shared->map)[i].curHang);
+			for (int j = 0; j < (control->shared->map)[i].curHang; j++)
 			{
-				listPlaneInfo((control->shared->map + i)->hangar[j]);
+				listPlaneInfo((control->shared->map)[i].hangar[j]);
 			}
-			_tprintf(TEXT("\nPosição do Aeroporto: [X=%d,Y=%d]\n\n"), (control->shared->map + i)->X, (control->shared->map + i)->Y);
+			_tprintf(TEXT("\nPosição do Aeroporto: [X=%d,Y=%d]\n_________________________________\n"), (control->shared->map)[i].X, (control->shared->map)[i].Y);
 		}
 
 		return 1;
@@ -520,6 +558,17 @@ DWORD WINAPI tratamentoDeComandos(LPVOID lpParam)
 	} while (_tcscmp(comando, TEXT("exit")));
 
 	free(comando);
+
+	return 0;
+}
+
+
+DWORD WINAPI bufferCircular(LPVOID lpParam)
+{
+	ControlData * pDataArray;
+	pDataArray = (ControlData*)lpParam;
+
+
 
 	return 0;
 }

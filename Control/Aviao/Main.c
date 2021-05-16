@@ -10,6 +10,7 @@ int _tmain(int argc, TCHAR * argv[]) {
 
 	// Sincronização
 	HANDLE semaphoreGate;
+	HANDLE mutexEntry;
 
 
 	// Limites e Erros
@@ -174,11 +175,11 @@ int _tmain(int argc, TCHAR * argv[]) {
 
 	//#####Sincronismos#####//
 
-	semaphoreGate = OpenSemaphore(SEMAPHORE_ALL_ACCESS, FALSE, CONTROL_SEMAPHORE_ENTRY);
+	mutexEntry = OpenMutex(MUTEX_ALL_ACCESS, FALSE, CONTROL_MUTEX_ENTRY);
 
-	if (semaphoreGate == NULL)
+	if (mutexEntry == NULL)
 	{
-		_tprintf(TEXT("\nErro ao abrir o semaforo de sincronização!\nErro %d\n"), GetLastError());
+		_tprintf(TEXT("\nErro ao abrir o mutex de sincronização!\nErro %d\n"), GetLastError());
 
 		UnmapViewOfFile(pShared);
 
@@ -189,36 +190,11 @@ int _tmain(int argc, TCHAR * argv[]) {
 		return -5;
 	}
 
-	//#####------------#####//
-
-
-	//##Entrada no Control##//
-
-	// Mutex de flag de aceitação no sistema / Escrita no Sistema
-	//-----------------WaitForSingleObject
-
-	// Modificar para ciclo de espera
-	WaitForSingleObject(semaphoreGate, INFINITE);
-
-	_tprintf(TEXT("\nEntrada com sucesso em Control!\n"));
-
-	// Mutex Release
-	//-------------
-
-	//##------------------##//
-
-	_gettch();
-
-	_tprintf(TEXT("\nInserir este avião no sítio certo.\n\n"));//DEBUG / Necessita de ir para o buffer circular
-
-	if (!insertAviaoTemporary(&aviao))
+	if (WaitForSingleObject(mutexEntry, 0) == WAIT_TIMEOUT)
 	{
-		_tprintf(TEXT("\nErro ao inserir DEBUG aviao na memória partilhada.\n"));
+		_tprintf(TEXT("\nErro ao entrar no Sistema Control.\nSistema não se encontra atualmente a aceitar Aviões!\n"));
 
-		if (ReleaseSemaphore(semaphoreGate, 1, NULL) == 0)
-		{
-			_tprintf(TEXT("\nLibertação do semaforo não foi um sucesso!\nError: %d\n"), GetLastError());
-		}
+		CloseHandle(mutexEntry);
 
 		UnmapViewOfFile(pShared);
 
@@ -229,7 +205,96 @@ int _tmain(int argc, TCHAR * argv[]) {
 		return -6;
 	}
 
-	_gettch();
+	ReleaseMutex(mutexEntry);
+
+	semaphoreGate = OpenSemaphore(SEMAPHORE_ALL_ACCESS, FALSE, CONTROL_SEMAPHORE_ENTRY);
+
+	if (semaphoreGate == NULL)
+	{
+		_tprintf(TEXT("\nErro ao abrir o semaforo de sincronização!\nErro %d\n"), GetLastError());
+
+		CloseHandle(mutexEntry);
+
+		UnmapViewOfFile(pShared);
+
+		CloseHandle(hMapFile);
+
+		_gettch();
+
+		return -7;
+	}
+
+	if (WaitForSingleObject(semaphoreGate, 0) == WAIT_TIMEOUT)
+	{
+		_tprintf(TEXT("\nErro ao entrar no Sistema Control.\nSistema encontra-se lotado!\n"));
+
+		CloseHandle(mutexEntry);
+
+		CloseHandle(semaphoreGate);
+
+		UnmapViewOfFile(pShared);
+
+		CloseHandle(hMapFile);
+
+		_gettch();
+
+		return -8;
+	}
+
+	_tprintf(TEXT("\nEntrada com sucesso em Control!\n"));
+
+	aviao.mutexMoveSync = OpenMutex(
+		MUTEX_ALL_ACCESS,
+		FALSE,
+		PLANE_MOVE_SYNC
+	);
+
+	if (aviao.mutexMoveSync == NULL)
+	{
+		_tprintf(TEXT("\nAbertura do mutex de sincronização de movimentação dos Aviões não foi criado com sucesso!\nErro %d\n"), GetLastError());
+
+		CloseHandle(mutexEntry);
+
+		CloseHandle(semaphoreGate);
+
+		UnmapViewOfFile(pShared);
+
+		CloseHandle(hMapFile);
+
+		_gettch();
+
+		return -9;
+	}
+
+	_tprintf(TEXT("\nAbertura do mutex de sincronização de movimentação dos Aviões foi criado com sucesso!\n"));// DEBUG
+
+	//#####------------#####//
+
+	_tprintf(TEXT("\nInserir este avião no sítio certo.\n\n"));//DEBUG / Necessita de ir para o buffer circular
+
+	if (!insertAviaoTemporary(&aviao))//DEBUG / Temporariamente desta forma
+	{
+		_tprintf(TEXT("\nErro ao inserir aviao %d na memória partilhada.\n"), aviao.id);
+
+		CloseHandle(mutexEntry);
+
+		if (ReleaseSemaphore(semaphoreGate, 1, NULL) == 0)
+		{
+			_tprintf(TEXT("\nLibertação do semaforo não foi um sucesso!\nError: %d\n"), GetLastError());
+		}
+		else
+		{
+			CloseHandle(semaphoreGate);
+		}
+
+		UnmapViewOfFile(pShared);
+
+		CloseHandle(hMapFile);
+
+		_gettch();
+
+		return -10;
+	}
 
 	//#####Threads#####//
 
@@ -245,7 +310,25 @@ int _tmain(int argc, TCHAR * argv[]) {
 	if (hThread == NULL)
 	{
 		_tprintf(TEXT("CreateThread failed, GLE=%d.\n"), GetLastError());
-		return -7;
+
+		CloseHandle(mutexEntry);
+
+		if (ReleaseSemaphore(semaphoreGate, 1, NULL) == 0)
+		{
+			_tprintf(TEXT("\nLibertação do semaforo não foi um sucesso!\nError: %d\n"), GetLastError());
+		}
+		else
+		{
+			CloseHandle(semaphoreGate);
+		}
+
+		UnmapViewOfFile(pShared);
+
+		CloseHandle(hMapFile);
+
+		_gettch();
+
+		return -11;
 	}
 
 	//######----------------------######//
@@ -254,9 +337,15 @@ int _tmain(int argc, TCHAR * argv[]) {
 
 	//-----------------//
 
+	CloseHandle(mutexEntry);
+
 	if (ReleaseSemaphore(semaphoreGate, 1, NULL) == 0)
 	{
 		_tprintf(TEXT("\nLibertação do semaforo não foi um sucesso!\nError: %d\n"), GetLastError());
+	}
+	else
+	{
+		CloseHandle(semaphoreGate);
 	}
 
 	UnmapViewOfFile(pShared);

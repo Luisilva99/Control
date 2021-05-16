@@ -8,7 +8,7 @@
 #include <fcntl.h>
 #include <io.h>
 #include <winreg.h>
-#include "../Aviao/SO2_TP_DLL_2021.h"
+#include "SO2_TP_DLL_2021.h"
 
 //Variáveis Futuras Memória//
 #define MAX_THREADS 20
@@ -16,6 +16,8 @@
 //-------------------------//
 
 //Variáveis da Sincronização//
+#define PLANE_MOVE_SYNC TEXT("MoveSync")
+#define CONTROL_MUTEX_ENTRY TEXT("MutexEntry")
 #define CONTROL_SEMAPHORE_ENTRY TEXT("PlaneGate")
 //--------------------------//
 
@@ -129,6 +131,7 @@ typedef struct
 	int maxPass, curPass;			//máximo de passageiros e tamanho atual
 	int velocidade;					//velocidade do avião
 	int voar;						//estado de voo (0 - parado / 1 - em voo)
+	HANDLE mutexMoveSync;			//mutex de sincronização de movimentação do Avião
 	SharedBuffer * buffer;			//memória partilhada
 } PlaneData;
 //-------------------//
@@ -167,16 +170,24 @@ void listPlaneInfo(PlaneData plane);
 
 //Thread de Tratamento de Comandos
 //Recebe:
-//		lpParam	-	Dados do Control
+//		lpParam	-	Dados do PlaneData
 DWORD WINAPI tratamentoDeComandos(LPVOID lpParam);
 
-//Função de Tratamento de Comandos do Control
+//Função de Tratamento de Comandos do Aviao
 //Recebe:
-//		control	-	Dados do Control
+//		aviao	-	Dados do Aviao
 //		comand	-	Comando introduzido pelo utilizador para Tratamento
 //Retorna:
 //		0	-	Comando sem espaços -> temporário
 //		1	-	Comando foi tratado
-int comandSwitcher(PlaneData * , TCHAR * comand);
+int comandSwitcher(PlaneData * aviao, TCHAR * comand);
+
+//Função de Verificação de posição vaga no Mapa para voar
+//Recebe:
+//		aviao	-	Dados do Aviao
+//Retorna:
+//		0	-	Posição encontra-se ocupada por um avião
+//		1	-	Posição está livre para voar
+int veryMapEmptyPlace(PlaneData * aviao);
 
 #endif
