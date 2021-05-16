@@ -277,12 +277,12 @@ void listPlaneInfo(Plane plane) {
 		_tprintf(TEXT("\nPartida / Atual: %s"), plane.partida);
 		_tprintf(TEXT("\nVelocidade: %d"), plane.velocidade);
 		plane.voar ? _tprintf(TEXT("\nEstado: Em voo")) : _tprintf(TEXT("\nEstado: Parado"));
-		_tprintf(TEXT("\nPosição atual: [X=%d,Y=%d]"), plane.X, plane.Y);
+		_tprintf(TEXT("\nPosição atual: [X=%3d,Y=%3d]"), plane.X, plane.Y);
 		if (plane.voar)
 		{
-			_tprintf(TEXT("\nPosição seguinte: [X=%d,Y=%d]"), plane.next_X, plane.next_Y);
+			_tprintf(TEXT("\nPosição seguinte: [X=%3d,Y=%3d]"), plane.next_X, plane.next_Y);
 		}
-		!_tcslen(plane.destino) ? _tprintf(TEXT("")) : _tprintf(TEXT("\nPosição final: [X=%d,Y=%d]"), plane.final_X, plane.final_Y);
+		!_tcslen(plane.destino) ? _tprintf(TEXT("")) : _tprintf(TEXT("\nPosição final: [X=%3d,Y=%3d]"), plane.final_X, plane.final_Y);
 		_tprintf(TEXT("\nNº de Passageiros embarcados: %d\n#############\n"), plane.curPass);
 	}
 }
@@ -315,7 +315,8 @@ int comandSwitcher(ControlData * control, TCHAR * comand) {
 		_tprintf(TEXT("\ninPlane stop/start - Abrir e fechar a aceitação de novos aviões.\n"));
 		_tprintf(TEXT("\ninPass stop/start - Abrir e fechar a aceitação de novos passageiros.\n"));
 		_tprintf(TEXT("\ncreateAero Nome posX poxY - Criar um novo aeroporto.\n"));
-		_tprintf(TEXT("\nlistAero - Apresenta a lista de todos os aeroportos registados.\n"));
+		_tprintf(TEXT("\nlistAero - Apresenta a lista de todos os aeroportos registados e os seus detalhes.\n"));
+		_tprintf(TEXT("\nlistPlane - Apresenta a lista de todos aviões registados.\n"));
 		_tprintf(TEXT("\nexit - Terminar Sistema.\n"));
 
 		return 1;
@@ -516,6 +517,12 @@ int comandSwitcher(ControlData * control, TCHAR * comand) {
 		{
 			listPlaneInfo((control->shared->planes)[i]);
 		}
+
+		return 1;
+	}
+	else if (_tcscmp(auxB, TEXT("exit")) == 0)
+	{
+		SetEvent(control->systemShutdown);
 
 		return 1;
 	}

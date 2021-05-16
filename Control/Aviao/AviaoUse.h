@@ -16,6 +16,7 @@
 //-------------------------//
 
 //Vari�veis da Sincroniza��o//
+#define KILLER_TRIGGER TEXT("KillAllSystems")
 #define PLANE_MOVE_SYNC TEXT("MoveSync")
 #define CONTROL_MUTEX_ENTRY TEXT("MutexEntry")
 #define CONTROL_SEMAPHORE_ENTRY TEXT("PlaneGate")
@@ -132,6 +133,7 @@ typedef struct
 	int velocidade;					//velocidade do avi�o
 	int voar;						//estado de voo (0 - parado / 1 - em voo)
 	HANDLE mutexMoveSync;			//mutex de sincroniza��o de movimenta��o do Avi�o
+	HANDLE eventMoveTrigger;		//event para iniciar o ciclo de movimento do Avi�o
 	SharedBuffer * buffer;			//mem�ria partilhada
 } PlaneData;
 //-------------------//
@@ -172,6 +174,11 @@ void listPlaneInfo(PlaneData plane);
 //Recebe:
 //		lpParam	-	Dados do PlaneData
 DWORD WINAPI tratamentoDeComandos(LPVOID lpParam);
+
+//Thread de Movimenta��o do Avi�o
+//Recebe:
+//		lpParam	-	Dados do PlaneData
+DWORD WINAPI movePlane(LPVOID lpParam);
 
 //Fun��o de Tratamento de Comandos do Aviao
 //Recebe:

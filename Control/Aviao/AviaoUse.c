@@ -28,6 +28,11 @@ int aviaoAeroVerify(PlaneData aviao) {
 	for (int i = 0; i < aviao.buffer->curAero; i++)
 	{
 		if (_tcscmp(aviao.partida, (aviao.buffer->map)[i].aeroName) == 0) {
+			if ((aviao.buffer->map)[i].curHang == (aviao.buffer->map)[i].maxHang)
+			{
+				return 0;
+			}
+
 			return 1;
 		}
 	}
@@ -90,6 +95,8 @@ int insertAviaoTemporary(PlaneData * aviao) {
 
 			(aviao->buffer->map)[j].curHang++;
 
+			(aviao->buffer->curPlane)++;
+
 			return 1;
 		}
 	}
@@ -113,7 +120,7 @@ void listPlaneInfo(PlaneData aviao) {
 int veryMapEmptyPlace(PlaneData * aviao) {
 	for (int i = 0; i < aviao->buffer->curPlane; i++)
 	{
-		if ((aviao->buffer->planes)[i].id != aviao->id)
+		if ((aviao->buffer->planes)[i].id != aviao->id && (aviao->buffer->planes)[i].voar == 1)
 		{
 			if (((aviao->buffer->planes)[i].X == aviao->next_X) && ((aviao->buffer->planes)[i].Y == aviao->next_Y))
 			{
@@ -174,7 +181,7 @@ int comandSwitcher(PlaneData * aviao, TCHAR * comand) {
 
 				if (_tcscmp(auxB, aviao->partida) == 0)
 				{
-					_tprintf(TEXT("\nDestino inválido!\n"));//DEBUG
+					_tprintf(TEXT("\nDestino inválido!\n"));
 
 					return 0;
 				}
@@ -183,7 +190,7 @@ int comandSwitcher(PlaneData * aviao, TCHAR * comand) {
 				{
 					if (_tcscmp(auxB, (aviao->buffer->map)[i].aeroName) == 0)
 					{
-						_tprintf(TEXT("\nDestino em Mapa de Control foi encontrado.\n"));//DEBUG
+						_tprintf(TEXT("\nDestino em Mapa de Control foi encontrado.\n"));
 
 						break;
 					}
@@ -230,8 +237,6 @@ int comandSwitcher(PlaneData * aviao, TCHAR * comand) {
 		}
 		else if (_tcscmp(auxB, TEXT("viagemStart")) == 0)
 		{
-			int j = 0;
-
 			if (!_tcslen(aviao->destino))
 			{
 				_tprintf(TEXT("\nNenhum destino atualmente definido.\n"));//DEBUG
@@ -239,96 +244,7 @@ int comandSwitcher(PlaneData * aviao, TCHAR * comand) {
 				return 0;
 			}
 
-			for (; j < aviao->buffer->curPlane; j++)
-			{
-				if ((aviao->buffer->planes)[j].id == aviao->id)
-				{
-					_tprintf(TEXT("\nAvião em Control foi encontrado.\n"));//DEBUG
-
-					break;
-				}
-			}
-
-			aviao->voar = 1;
-
-			(aviao->buffer->planes)[j].voar = aviao->voar;
-
-			//Envio de mensagem de inicio de viagem para o Buffer Circular
-
-			while (aviao->X != aviao->final_X && aviao->Y != aviao->final_Y)
-			{
-				WaitForSingleObject(aviao->mutexMoveSync, INFINITE);
-
-				int times = 0;
-
-				while (times < aviao->velocidade)
-				{
-					move((*aviao).X, (*aviao).Y, (*aviao).final_X, (*aviao).final_Y, &(*aviao).next_X, &(*aviao).next_Y);
-
-					int direction = 1;
-
-					while (!veryMapEmptyPlace(aviao))
-					{
-						switch (direction)
-						{
-						case 1:
-							if ((*aviao).X + 1 > MAP_TAM)
-							{
-								direction++;
-
-								break;
-							}
-
-							break;
-
-						case 2:
-							if (0 < (*aviao).X - 1)
-							{
-								direction++;
-
-								break;
-							}
-
-							break;
-
-						case 3:
-							if (0 < (*aviao).Y - 1)
-							{
-								direction++;
-
-								break;
-							}
-
-							break;
-
-						case 4:
-							if ((*aviao).Y + 1 > MAP_TAM)
-							{
-								direction++;
-
-								break;
-							}
-
-							break;
-
-						default:
-							break;
-						}
-					}
-
-					aviao->X = aviao->next_X;
-
-					aviao->Y = aviao->next_Y;
-
-					_tprintf(TEXT("\nAvião %d na posição [X=%3d;Y=%3d]\n"), aviao->id, aviao->X, aviao->Y);
-
-					times++;
-				}
-
-				ReleaseMutex(aviao->mutexMoveSync);
-			}
-
-			//Envio de mensagem de chegada ao destino para o Buffer Circular
+			SetEvent(aviao->eventMoveTrigger);
 
 			return 1;
 		}
@@ -395,6 +311,103 @@ DWORD WINAPI tratamentoDeComandos(LPVOID lpParam)
 	} while (_tcscmp(comando, TEXT("exit")));
 
 	free(comando);
+
+	return 0;
+}
+
+
+DWORD WINAPI movePlane(LPVOID lpParam)
+{
+	PlaneData * aviao;
+	aviao = (PlaneData*)lpParam;
+
+	do
+	{
+		WaitForSingleObject(aviao->eventMoveTrigger, INFINITE);
+
+		int j = 0;
+
+		for (; j < aviao->buffer->curPlane; j++)
+		{
+			if ((aviao->buffer->planes)[j].id == aviao->id)
+			{
+				_tprintf(TEXT("\nAvião em Control foi encontrado.\n"));//DEBUG
+
+				break;
+			}
+		}
+
+		aviao->voar = 1;
+
+		(aviao->buffer->planes)[j].voar = aviao->voar;
+
+		//Envio de mensagem de inicio de viagem para o Buffer Circular
+
+		while (aviao->X != aviao->final_X && aviao->Y != aviao->final_Y)
+		{
+			WaitForSingleObject(aviao->mutexMoveSync, INFINITE);
+
+			int times = 0;
+
+			while (times < aviao->velocidade)
+			{
+				int result = move((*aviao).X, (*aviao).Y, (*aviao).final_X, (*aviao).final_Y, &(*aviao).next_X, &(*aviao).next_Y);
+
+				if (result == 0)
+				{
+					aviao->X = aviao->next_X;
+
+					aviao->Y = aviao->next_Y;
+
+					_tprintf(TEXT("\nAvião %d na posição [X=%3d;Y=%3d]\n"), aviao->id, aviao->X, aviao->Y);
+
+					break;
+				}
+				else if(result == 2)
+				{
+					_tprintf(TEXT("\nErro na função move!\n"));
+
+					return -1;
+				}
+
+				//DEBUG / Necessário tratar do redirecionamento
+				//if (!veryMapEmptyPlace(aviao))
+				//{
+				//	_tprintf(TEXT("\nPossivel colizão, vou desviar-me!\n"));//DEBUG
+
+
+				//}
+
+				aviao->X = aviao->next_X;
+
+				aviao->Y = aviao->next_Y;
+
+				_tprintf(TEXT("\nAvião %d na posição [X=%3d;Y=%3d]\n"), aviao->id, aviao->X, aviao->Y);
+
+				times++;
+			}
+
+			(aviao->buffer->planes)[j].X = aviao->X;
+
+			(aviao->buffer->planes)[j].Y = aviao->Y;
+
+			ReleaseMutex(aviao->mutexMoveSync);
+		}
+
+		//Envio de mensagem de chegada ao destino para o Buffer Circular
+
+		aviao->voar = 0;
+
+		(aviao->buffer->planes)[j].voar = aviao->voar;
+
+		_stprintf_s((aviao->buffer->planes)[j].partida, TAM, TEXT("%s"), aviao->destino);
+
+		_stprintf_s(aviao->partida, TAM, TEXT("%s"), aviao->destino);
+
+		_stprintf_s((aviao->buffer->planes)[j].destino, TAM, TEXT("%s"), TEXT(""));
+
+		_stprintf_s(aviao->destino, TAM, TEXT("%s"), TEXT(""));
+	} while (1);
 
 	return 0;
 }
