@@ -8,7 +8,7 @@
 #include <fcntl.h>
 #include <io.h>
 #include <winreg.h>
-#include "../Aviao/SO2_TP_DLL_2021.h"
+#include "SO2_TP_DLL_2021.h"
 
 //Variáveis Futuras Memória//
 #define MAX_THREADS 20
@@ -177,6 +177,6 @@ DWORD WINAPI tratamentoDeComandos(LPVOID lpParam);
 //Retorna:
 //		0	-	Comando sem espaços -> temporário
 //		1	-	Comando foi tratado
-int comandSwitcher(PlaneData * , TCHAR * comand);
+int comandSwitcher(PlaneData * aviao, TCHAR * comand);
 
 #endif
