@@ -6,7 +6,6 @@ int _tmain(int argc, TCHAR * argv[]) {
 
 	// Memória Partilhada
 	HANDLE hMapFile;
-	LPTSTR pBuf = NULL;
 
 	// Sincronização
 	HANDLE semaphoreGate;
@@ -15,7 +14,7 @@ int _tmain(int argc, TCHAR * argv[]) {
 
 
 	// Limites e Erros
-	int valorArgumento, errorType = 0;
+	int valorArgumento;
 
 
 	// Threads

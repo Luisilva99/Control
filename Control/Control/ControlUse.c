@@ -63,7 +63,6 @@ int readAeroLimits() {
 	if (test_existance == ERROR_SUCCESS)
 	{
 		_tprintf(TEXT("\nLeitura no regedit bem sucedida!\n"));
-		//_tprintf(TEXT("\nMáximo de Aeroportos permitidos criar: %s\n"), par_valor);
 	}
 	else
 	{
@@ -116,7 +115,6 @@ int readPlaneLimits() {
 	if (test_existance == ERROR_SUCCESS)
 	{
 		_tprintf(TEXT("\nLeitura no regedit bem sucedida!\n"));
-		//_tprintf(TEXT("\nMáximo de Aviões permitidos no sistema: %s\n"), par_valor);
 	}
 	else
 	{
@@ -262,8 +260,8 @@ int createPlaneLimits(int valor) {
 void listPassInfo(Passag pass) {
 	if (_tcscmp(pass.partida, TEXT("")) != 0)
 	{
-		_tprintf(TEXT("\n--------------------\nChegada / Atual: %s"), pass.destino);
-		_tprintf(TEXT("\nPartida / Destino: %s"), pass.partida);
+		_tprintf(TEXT("\n--------------------\nChegada / Destino: %s"), pass.destino);
+		_tprintf(TEXT("\nPartida / Atual: %s"), pass.partida);
 		_tprintf(TEXT("\nTempo de Espera: %d\n--------------------\n"), pass.tempo);
 	}
 }
@@ -472,7 +470,7 @@ int comandSwitcher(ControlData * control, TCHAR * comand) {
 		}
 		else
 		{
-			_tprintf(TEXT("\nNão é possível criar mais Aeroportos.\nLimite máximo alcançado.\n"));//DEBUG
+			_tprintf(TEXT("\nNão é possível criar mais Aeroportos.\nLimite máximo alcançado.\n"));
 		}
 
 		return 0;
@@ -499,7 +497,7 @@ int comandSwitcher(ControlData * control, TCHAR * comand) {
 			{
 				listPlaneInfo((control->shared->map)[i].hangar[j]);
 			}
-			_tprintf(TEXT("\nPosição do Aeroporto: [X=%d,Y=%d]\n_________________________________\n"), (control->shared->map)[i].X, (control->shared->map)[i].Y);
+			_tprintf(TEXT("\nPosição do Aeroporto: [X=%3d,Y=%3d]\n_________________________________\n"), (control->shared->map)[i].X, (control->shared->map)[i].Y);
 		}
 
 		return 1;
@@ -629,6 +627,8 @@ DWORD WINAPI bufferCircular(LPVOID lpParam)
 				{
 					if (_tcscmp((control->shared->map)[j].passageiros[h].destino, (control->shared->planes)[i].destino) == 0)
 					{
+
+						//Rever esta zona//
 						if ((control->shared->planes)[i].curPass < (control->shared->planes)[i].maxPass)
 						{
 							(control->shared->planes)[i].pass[(control->shared->planes)[i].curPass] = (control->shared->map)[j].passageiros[h];
@@ -646,6 +646,8 @@ DWORD WINAPI bufferCircular(LPVOID lpParam)
 
 							_stprintf_s((control->shared->map)[j].passageiros[(control->shared->map)[j].curPass].destino, TAM, TEXT("%s"), TEXT(""));
 						}
+						//---------------//
+
 					}
 				}
 
@@ -659,6 +661,8 @@ DWORD WINAPI bufferCircular(LPVOID lpParam)
 			if ((auxB = _tcstok_s(NULL, TEXT(" "), &auxA)) != NULL)
 			{
 				id = _tstoi(auxB);
+
+				//reestruturar tudo este comando//
 
 				for (int i = 0; i < control->shared->curPlane; i++)
 				{
