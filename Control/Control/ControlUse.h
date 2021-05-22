@@ -10,59 +10,6 @@
 #include <winreg.h>
 
 
-//Dúvidas//
-//	Q: Passageiros só podem entrar assim que os aeroportos estiverem definidos?
-//
-//	R: ------------------------------------------------------------------------------------------------------------------------------------------
-//
-//
-//	Q: Os aeroportos podem ser criados a meio da execução (quando aviões já estão em funcionamento / passageiros já se encontram abordo dos aviões)?
-//
-//	R: ------------------------------------------------------------------------------------------------------------------------------------------
-//
-//
-//	Q: Podemos fazer malloc em arrays para passar para a memória partilhada?
-//
-//	R: Tem a haver com as Views, uma memória partilhada pode ter várias Views começando com offsets diferentes. A resposta é avisada por um evento para o avião ler!
-//     Temos de ter uma estrutura de resposta para os aviões ler a resposta e esta estrutura facilmente identificada para leitura dele.
-//
-//
-//	Q: O que é consumido é as mensagens entre os Aviões e o Control?
-//
-//	R: Sim, é isso mesmo, mensagens com as modificações / posições dos aviões.
-//
-//
-//	Q: Posso utilizar ponteiros na memória partilhada que apenas se referem ao inicio do meu array físico do Control para apenas visualizar a informação nos outros processos?
-//	   E se fizer isto, consigo apenas ter que modificar o array físico e o ponteiro continua a apontar corretamente para este array?
-//
-//	R: ------------------------------------------------------------------------------------------------------------------------------------------
-//
-//------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-//
-//	Q: Posso colocar os mapas em memória partilhada para o avião saber para onde ir? Ou é o Control que lhe diz para onde ele deve ir?
-//
-//	R: Sim e devo, mas devo ter atenção aos sincronismos de quem lê e quem escreve!!!
-//
-//
-//	Q: Ao ler a memória partilhada, posso apenas ler uma das partes desta memória partilhada?
-//	   Tipo mandar uma struct com dois int e ler apenas um específico?
-//
-//	R: Não é necessário, mais vale enviar tudo de uma só vez. O aviao necessita de uma Thread com um evento de nome igual para dizer para todos os aviões lerem! (pensar bem)
-//
-//
-//	Q:
-//
-//	R:
-//
-//
-//	Q:
-//
-//	R:
-//
-//
-//-------//
-
-
 //Variáveis de Input//
 #define POS_AERO_AREA 10
 #define TAM 100
@@ -81,6 +28,8 @@
 //---------------------//
 
 //Variáveis da Sincronização//
+#define CONTROL_SEMAPHORE_BUFFER_READER TEXT("ReadCircularBuffer")
+#define PLANE_MUTEX_WRITER TEXT("WriteCircularBuffer")
 #define KILLER_TRIGGER TEXT("KillAllSystems")
 #define PLANE_MOVE_SYNC TEXT("MoveSync")
 #define CONTROL_MUTEX_ENTRY TEXT("MutexEntry")
@@ -134,20 +83,11 @@ typedef struct {
 	CircularBuffer buffer[TAM_BUFF];
 	int locReadAtual, locWriteAtual, maxBuffer;
 } TotalCircularBuffer;
-
-typedef struct
-{
-	int id;							//ID do user a receber
-	int X, Y;						//Coordenadas respondidas
-	TCHAR controlResponse[TAM_INPUT];//resposta do Control ao Aviao
-} SharedMsg;
 //-------------------------------//
 
 //Memória Partilhada//
 typedef struct
 {
-	//SharedMsg msg;					//Aviões e as estruturas de mensagens
-
 	Plane planes[MAX_PLANES];		//Aviões e as estruturas de mensagens
 	int maxPlane, curPlane;			//Máximo de Aviões e tamanho atual
 	MapUnit map[MAX_AERO];			//Aeroportos
@@ -171,6 +111,7 @@ typedef struct {
 	HANDLE entry;					//Mutex de aceitação de novos Aviões
 	int entryStopped;				//Flag de indicador de paragem de aceitação de novos Aviões
 	HANDLE systemShutdown;			//Evento para terminar todos os programas
+	HANDLE readBuffer;				//Semáforo para leitura do Buffer Circular
 	SharedBuffer * shared;			//Memória Partilhada com Aviao
 } ControlData;
 //------------------------------//

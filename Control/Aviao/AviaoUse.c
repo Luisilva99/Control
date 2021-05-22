@@ -48,7 +48,7 @@ int insertAviaoTemporary(PlaneData * aviao) {
 	{
 		if ((aviao->buffer->planes)[i].id == aviao->id)
 		{
-			_tprintf(TEXT("\nID do avião já existe!\n"));
+			_tprintf(TEXT("\nID do avião já existe!\nNão poden existir dois Aviões ou mais com o mesmo ID.\n"));
 
 			return 0;
 		}
@@ -136,6 +136,7 @@ int veryMapEmptyPlace(PlaneData * aviao) {
 int comandSwitcher(PlaneData * aviao, TCHAR * comand) {
 	TCHAR * auxA;
 	TCHAR * auxB = _tcstok_s(comand, TEXT(" "), &auxA);
+	TCHAR msg[TAM_INPUT];
 
 	if (auxB == NULL)
 	{
@@ -169,6 +170,14 @@ int comandSwitcher(PlaneData * aviao, TCHAR * comand) {
 	else if (_tcscmp(auxB, TEXT("infoSelf")) == 0)
 	{
 		listPlaneInfo(*(aviao));
+
+		return 1;
+	}
+	else if (_tcscmp(auxB, TEXT("exit")) == 0)
+	{
+		_stprintf_s(msg, TAM_INPUT, TEXT("Terminar %d"), aviao->id);
+
+		writeInCircularBuffer(aviao, msg);
 
 		return 1;
 	}
@@ -239,7 +248,7 @@ int comandSwitcher(PlaneData * aviao, TCHAR * comand) {
 		{
 			if (!_tcslen(aviao->destino))
 			{
-				_tprintf(TEXT("\nNenhum destino atualmente definido.\n"));//DEBUG
+				_tprintf(TEXT("\nNenhum destino atualmente definido.\n"));
 
 				return 0;
 			}
@@ -250,9 +259,16 @@ int comandSwitcher(PlaneData * aviao, TCHAR * comand) {
 		}
 		else if (_tcscmp(auxB, TEXT("embarque")) == 0)
 		{
-			//Mensagem ao Buffer Circular para o Control embarcar o máximo possível neste user
+			if (!_tcslen(aviao->destino))
+			{
+				_tprintf(TEXT("\nNenhum destino atualmente definido.\n"));
 
-			_tprintf(TEXT("\nPlaceholder por enquanto.\n"));//DEBUG
+				return 0;
+			}
+
+			_stprintf_s(msg, TAM_INPUT, TEXT("Embarcar %d"), aviao->id);
+
+			writeInCircularBuffer(aviao, msg);
 
 			//Cópia dos passageiros embarcados para este avião para a estrutura principal de info dele
 
@@ -306,7 +322,6 @@ DWORD WINAPI tratamentoDeComandos(LPVOID lpParam)
 	{
 		_tprintf(TEXT("\n> "));
 		getTCHARInput(comando, TAM_INPUT);
-		//DEBUG - pode ocorrer aqui erro uma vez que o "comando" é modificado diretamente - se alguém introduzir "exit ok" a variável modificada terá "exit"
 		comandSwitcher(pDataArray, comando) ? _tprintf(TEXT("")) : _tprintf(TEXT("\nComando Incorreto.\n"));
 	} while (_tcscmp(comando, TEXT("exit")));
 
@@ -320,6 +335,7 @@ DWORD WINAPI movePlane(LPVOID lpParam)
 {
 	PlaneData * aviao;
 	aviao = (PlaneData*)lpParam;
+	TCHAR msg[TAM_INPUT];
 
 	do
 	{
@@ -341,7 +357,9 @@ DWORD WINAPI movePlane(LPVOID lpParam)
 
 		(aviao->buffer->planes)[j].voar = aviao->voar;
 
-		//Envio de mensagem de inicio de viagem para o Buffer Circular
+		_stprintf_s(msg, TAM_INPUT, TEXT("viagemStart %d %s"), aviao->id, aviao->partida);
+
+		writeInCircularBuffer(aviao, msg);
 
 		while (aviao->X != aviao->final_X && aviao->Y != aviao->final_Y)
 		{
@@ -370,13 +388,36 @@ DWORD WINAPI movePlane(LPVOID lpParam)
 					return -1;
 				}
 
-				//DEBUG / Necessário tratar do redirecionamento
-				//if (!veryMapEmptyPlace(aviao))
-				//{
-				//	_tprintf(TEXT("\nPossivel colizão, vou desviar-me!\n"));//DEBUG
+				if (!veryMapEmptyPlace(aviao))
+				{
+					_tprintf(TEXT("\nPossivel colisão, vou desviar-me!\n"));//DEBUG
 
+					//DEBUG / Desvio Temporário
+					if (0 < aviao->X || aviao->X > MAP_TAM)
+					{
+						if ((aviao->X - aviao->next_X) > 0)
+						{
+							aviao->next_X =- 1;
+						}
+						else
+						{
+							aviao->next_X =+ 1;
+						}
+					}
 
-				//}
+					if (0 < aviao->Y || aviao->Y > MAP_TAM)
+					{
+						if ((aviao->Y - aviao->next_Y) > 0)
+						{
+							aviao->next_Y =- 1;
+						}
+						else
+						{
+							aviao->next_Y =+ 1;
+						}
+					}
+					//DEBUG / Desvio Temporário
+				}
 
 				aviao->X = aviao->next_X;
 
@@ -394,7 +435,9 @@ DWORD WINAPI movePlane(LPVOID lpParam)
 			ReleaseMutex(aviao->mutexMoveSync);
 		}
 
-		//Envio de mensagem de chegada ao destino para o Buffer Circular
+		_stprintf_s(msg, TAM_INPUT, TEXT("viagemEnd %d %s"), aviao->id, aviao->destino);
+
+		writeInCircularBuffer(aviao, msg);
 
 		aviao->voar = 0;
 
@@ -410,6 +453,30 @@ DWORD WINAPI movePlane(LPVOID lpParam)
 	} while (1);
 
 	return 0;
+}
+
+
+void writeInCircularBuffer(PlaneData * aviao, TCHAR * msg) {
+	WaitForSingleObject(aviao->writeBuffer, INFINITE);
+
+	int i;
+
+	if ((aviao->buffer->tCircBuffer.locWriteAtual) == 0)
+	{
+		i = 0;
+	}
+	else
+	{
+		i = (aviao->buffer->tCircBuffer.locWriteAtual) % (aviao->buffer->tCircBuffer.maxBuffer);
+	}
+
+	_stprintf_s(aviao->buffer->tCircBuffer.buffer[i].msg, TAM_INPUT, TEXT("%s"), msg);
+
+	(aviao->buffer->tCircBuffer.locWriteAtual)++;
+
+	ReleaseMutex(aviao->writeBuffer);
+
+	ReleaseSemaphore(aviao->readBuffer, 1, 0);
 }
 
 
