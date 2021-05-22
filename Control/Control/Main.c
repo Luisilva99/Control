@@ -30,6 +30,12 @@ int _tmain(int argc, TCHAR * argv[]) {
 	SharedBuffer * pShared;
 	SharedBuffer shared;
 
+
+	//Named Pipes
+	HANDLE hPipe;
+	char buffer[1024];
+	DWORD dwRead;
+
 #ifdef UNICODE
 	_setmode(_fileno(stdin), _O_WTEXT);
 	_setmode(_fileno(stdout), _O_WTEXT);
@@ -405,16 +411,50 @@ int _tmain(int argc, TCHAR * argv[]) {
 
 	//#####------------#####//
 
-	//######Lançamento das Threads######//
 
-	hThread[0] = CreateThread(
-		NULL,
-		0,
-		tratamentoDeComandos,
-		(LPVOID)&control,
-		0,
-		&dwThread[0]
-	);
+	//Named pipes - comunicação com os passageiros
+
+	hPipe = CreateNamedPipe(TEXT("\\\\.\\pipe\\Pipe"),
+		PIPE_ACCESS_DUPLEX,
+		PIPE_TYPE_BYTE | PIPE_READMODE_BYTE | PIPE_WAIT,   // FILE_FLAG_FIRST_PIPE_INSTANCE is not needed but forces CreateNamedPipe(..) to fail if the pipe already exists...
+		1,
+		1024 * 16,
+		1024 * 16,
+		NMPWAIT_USE_DEFAULT_WAIT,
+		NULL);
+	while (hPipe != INVALID_HANDLE_VALUE)
+	{
+		if (ConnectNamedPipe(hPipe, NULL) != FALSE)   // wait for someone to connect to the pipe
+		{
+			while (ReadFile(hPipe, buffer, sizeof(buffer) - 1, &dwRead, NULL) != FALSE)
+			{
+				/* add terminating zero */
+				buffer[dwRead] = '\0';
+
+				// faz algo com a informação do buffer
+				printf("%s", buffer);
+			}
+		}
+
+		DisconnectNamedPipe(hPipe);
+	}
+
+	return 0;
+
+////////////////////////////////////////////////////////////////////
+
+
+//######Lançamento das Threads######//
+
+	
+hThread[0] = CreateThread(
+	NULL,
+	0,
+	tratamentoDeComandos,
+	(LPVOID)&control,
+	0,
+	&dwThread[0]
+);
 
 	if (hThread[0] == NULL)
 	{
