@@ -447,14 +447,14 @@ int _tmain(int argc, TCHAR * argv[]) {
 //######Lançamento das Threads######//
 
 	
-hThread[0] = CreateThread(
-	NULL,
-	0,
-	tratamentoDeComandos,
-	(LPVOID)&control,
-	0,
-	&dwThread[0]
-);
+	hThread[0] = CreateThread(
+		NULL,
+		0,
+		tratamentoDeComandos,
+		(LPVOID)&control,
+		0,
+		&dwThread[0]
+	);
 
 	if (hThread[0] == NULL)
 	{
