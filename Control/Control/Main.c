@@ -446,7 +446,7 @@ int _tmain(int argc, TCHAR * argv[]) {
 
 //######Lançamento das Threads######//
 
-	
+
 	hThread[0] = CreateThread(
 		NULL,
 		0,
