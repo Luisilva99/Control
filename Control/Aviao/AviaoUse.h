@@ -48,6 +48,8 @@
 typedef struct
 {
 	int tempo;						//tempo de espera / ao fim deste tempo o passageiro vai se embora
+	int voar;						//estado atual (em espera / em viagem)
+	TCHAR nome[TAM];				//nome do passageiro
 	TCHAR destino[TAM];				//aeroporto de chegada
 	TCHAR partida[TAM];				//aeroporto de partida
 } Passag;
@@ -179,7 +181,7 @@ DWORD WINAPI movePlane(LPVOID lpParam);
 //		aviao	-	Dados do Aviao
 //		comand	-	Comando introduzido pelo utilizador para Tratamento
 //Retorna:
-//		0	-	Comando sem espa�os -> tempor�rio
+//		0	-	Comando sem espa�os
 //		1	-	Comando foi tratado
 int comandSwitcher(PlaneData * aviao, TCHAR * comand);
 

@@ -18,6 +18,7 @@ int _tmain(int argc, TCHAR * argv[]) {
 
 	// Sincroniza��o
 	HANDLE semaphoreGate;
+	HANDLE semaphorePassagGate;
 	HANDLE mutexMoveSync;
 	HANDLE mutexWriters;
 
@@ -409,39 +410,69 @@ int _tmain(int argc, TCHAR * argv[]) {
 
 	_tprintf(TEXT("\nSemáforo de leitura do Buffer Circular foi criado com sucesso!\n"));// DEBUG
 
+	semaphorePassagGate = CreateSemaphore(
+		NULL,
+		MAX_PASS,
+		MAX_PASS,
+		CONTROL_SEMAPHORE_PASSAG_ENTRY
+	);
+
+	if (semaphorePassagGate == NULL)
+	{
+		_tprintf(TEXT("\nSemáforo de entrada de Passageiros não foi criado com sucesso!\nErro %d\n"), GetLastError());
+
+		CloseHandle(control.readBuffer);
+
+		CloseHandle(mutexWriters);
+
+		CloseHandle(control.systemShutdown);
+
+		CloseHandle(semaphoreGate);
+
+		CloseHandle(mutexMoveSync);
+
+		UnmapViewOfFile(pShared);
+
+		CloseHandle(hMapFile);
+
+		_gettch();
+
+		return -14;
+	}
+
+	_tprintf(TEXT("\nSemáforo de entrada de Passageiros foi criado com sucesso!\n"));// DEBUG
+
 	//#####------------#####//
 
 
-	//Named pipes - comunicação com os passageiros
-
-	hPipe = CreateNamedPipe(TEXT("\\\\.\\pipe\\Pipe"),
-		PIPE_ACCESS_DUPLEX,
-		PIPE_TYPE_BYTE | PIPE_READMODE_BYTE | PIPE_WAIT,   // FILE_FLAG_FIRST_PIPE_INSTANCE is not needed but forces CreateNamedPipe(..) to fail if the pipe already exists...
-		1,
-		1024 * 16,
-		1024 * 16,
-		NMPWAIT_USE_DEFAULT_WAIT,
-		NULL);
-	while (hPipe != INVALID_HANDLE_VALUE)
-	{
-		if (ConnectNamedPipe(hPipe, NULL) != FALSE)   // wait for someone to connect to the pipe
-		{
-			while (ReadFile(hPipe, buffer, sizeof(buffer) - 1, &dwRead, NULL) != FALSE)
-			{
-				/* add terminating zero */
-				buffer[dwRead] = '\0';
-
-				// faz algo com a informação do buffer
-				printf("%s", buffer);
-			}
-		}
-
-		DisconnectNamedPipe(hPipe);
-	}
-
-	return 0;
-
-////////////////////////////////////////////////////////////////////
+//	//Named pipes - comunicação com os passageiros
+//
+//	hPipe = CreateNamedPipe(TEXT("\\\\.\\pipe\\Pipe"),
+//		PIPE_ACCESS_DUPLEX,
+//		PIPE_TYPE_BYTE | PIPE_READMODE_BYTE | PIPE_WAIT,   // FILE_FLAG_FIRST_PIPE_INSTANCE is not needed but forces CreateNamedPipe(..) to fail if the pipe already exists...
+//		1,
+//		1024 * 16,
+//		1024 * 16,
+//		NMPWAIT_USE_DEFAULT_WAIT,
+//		NULL);
+//	while (hPipe != INVALID_HANDLE_VALUE)
+//	{
+//		if (ConnectNamedPipe(hPipe, NULL) != FALSE)   // wait for someone to connect to the pipe
+//		{
+//			while (ReadFile(hPipe, buffer, sizeof(buffer) - 1, &dwRead, NULL) != FALSE)
+//			{
+//				/* add terminating zero */
+//				buffer[dwRead] = '\0';
+//
+//				// faz algo com a informação do buffer
+//				printf("%s", buffer);
+//			}
+//		}
+//
+//		DisconnectNamedPipe(hPipe);
+//	}
+//
+//////////////////////////////////////////////////////////////////////
 
 
 //######Lançamento das Threads######//
@@ -460,39 +491,7 @@ int _tmain(int argc, TCHAR * argv[]) {
 	{
 		_tprintf(TEXT("CreateThread failed, GLE=%d.\n"), GetLastError());
 
-		CloseHandle(control.readBuffer);
-
-		CloseHandle(mutexWriters);
-
-		CloseHandle(control.systemShutdown);
-
-		CloseHandle(control.entry);
-
-		CloseHandle(semaphoreGate);
-
-		CloseHandle(mutexMoveSync);
-
-		UnmapViewOfFile(pShared);
-
-		CloseHandle(hMapFile);
-
-		return -14;
-	}
-
-	hThread[1] = CreateThread(
-		NULL,
-		0,
-		bufferCircular,
-		(LPVOID)&control,
-		0,
-		&dwThread[1]
-	);
-
-	if (hThread[1] == NULL)
-	{
-		_tprintf(TEXT("CreateBufferThread failed, GLE=%d.\n"), GetLastError());
-
-		CloseHandle(hThread[0]);
+		CloseHandle(semaphorePassagGate);
 
 		CloseHandle(control.readBuffer);
 
@@ -513,6 +512,42 @@ int _tmain(int argc, TCHAR * argv[]) {
 		return -15;
 	}
 
+	hThread[1] = CreateThread(
+		NULL,
+		0,
+		bufferCircular,
+		(LPVOID)&control,
+		0,
+		&dwThread[1]
+	);
+
+	if (hThread[1] == NULL)
+	{
+		_tprintf(TEXT("CreateBufferThread failed, GLE=%d.\n"), GetLastError());
+
+		CloseHandle(hThread[0]);
+
+		CloseHandle(semaphorePassagGate);
+
+		CloseHandle(control.readBuffer);
+
+		CloseHandle(mutexWriters);
+
+		CloseHandle(control.systemShutdown);
+
+		CloseHandle(control.entry);
+
+		CloseHandle(semaphoreGate);
+
+		CloseHandle(mutexMoveSync);
+
+		UnmapViewOfFile(pShared);
+
+		CloseHandle(hMapFile);
+
+		return -16;
+	}
+
 	//######----------------------######//
 
 	WaitForMultipleObjects(2, hThread, FALSE, INFINITE);
@@ -523,6 +558,8 @@ int _tmain(int argc, TCHAR * argv[]) {
 	{
 		CloseHandle(hThread[i]);
 	}
+
+	CloseHandle(semaphorePassagGate);
 
 	CloseHandle(control.readBuffer);
 

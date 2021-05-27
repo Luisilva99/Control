@@ -23,8 +23,8 @@
 #define MAX_PLANES 5
 #define SETTINGS_AERO TEXT("maxAero")
 #define MAX_AERO 5
-#define MAX_PASS 5
-#define MAX_PASS_CONTROL 20
+#define MAX_PASS 2
+#define MAX_PASS_CONTROL MAX_PASS
 //---------------------//
 
 //Variáveis da Sincronização//
@@ -34,12 +34,15 @@
 #define PLANE_MOVE_SYNC TEXT("MoveSync")
 #define CONTROL_MUTEX_ENTRY TEXT("MutexEntry")
 #define CONTROL_SEMAPHORE_ENTRY TEXT("PlaneGate")
+#define CONTROL_SEMAPHORE_PASSAG_ENTRY TEXT("PassagGate")
 //--------------------------//
 
 //Estrutura passageiros//
 typedef struct
 {
 	int tempo;						//tempo de espera / ao fim deste tempo o passageiro vai se embora
+	int voar;						//estado atual (em espera / em viagem)
+	TCHAR nome[TAM];				//nome do passageiro
 	TCHAR destino[TAM];				//aeroporto de destino
 	TCHAR partida[TAM];				//aeroporto de partida
 } Passag;
@@ -192,7 +195,7 @@ DWORD WINAPI bufferCircular(LPVOID lpParam);
 //		control	-	Dados do Control
 //		comand	-	Comando introduzido pelo utilizador para Tratamento
 //Retorna:
-//		0	-	Comando sem espaços -> temporário
+//		0	-	Comando sem espaços
 //		1	-	Comando foi tratado
 int comandSwitcher(ControlData * control, TCHAR * comand);
 

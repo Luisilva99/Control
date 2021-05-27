@@ -260,9 +260,15 @@ int createPlaneLimits(int valor) {
 void listPassInfo(Passag pass) {
 	if (_tcscmp(pass.partida, TEXT("")) != 0)
 	{
-		_tprintf(TEXT("\n--------------------\nChegada / Destino: %s"), pass.destino);
+		_tprintf(TEXT("\n--------------------\nNome: %s"), pass.nome);
+		_tprintf(TEXT("\nChegada / Destino: %s"), pass.destino);
 		_tprintf(TEXT("\nPartida / Atual: %s"), pass.partida);
-		_tprintf(TEXT("\nTempo de Espera: %d\n--------------------\n"), pass.tempo);
+		pass.voar ? _tprintf(TEXT("\nEstado: Em Viagem")) : _tprintf(TEXT("\nEstado: Em Espera"));
+		if (pass.tempo != INFINITE)
+		{
+			_tprintf(TEXT("\nTempo de Espera: %d"), pass.tempo);
+		}
+		_tprintf(TEXT("\n--------------------\n"));
 	}
 }
 
