@@ -255,6 +255,11 @@ int _tmain(int argc, TCHAR * argv[]) {
 
 		CloseHandle(mutexEntry);
 
+		if (ReleaseSemaphore(semaphoreGate, 1, NULL) == 0)
+		{
+			_tprintf(TEXT("\nLibertação do semaforo não foi um sucesso!\nError: %d\n"), GetLastError());
+		}
+
 		CloseHandle(semaphoreGate);
 
 		UnmapViewOfFile(pShared);
@@ -282,6 +287,11 @@ int _tmain(int argc, TCHAR * argv[]) {
 		CloseHandle(aviao.mutexMoveSync);
 
 		CloseHandle(mutexEntry);
+
+		if (ReleaseSemaphore(semaphoreGate, 1, NULL) == 0)
+		{
+			_tprintf(TEXT("\nLibertação do semaforo não foi um sucesso!\nError: %d\n"), GetLastError());
+		}
 
 		CloseHandle(semaphoreGate);
 
@@ -312,6 +322,11 @@ int _tmain(int argc, TCHAR * argv[]) {
 
 		CloseHandle(mutexEntry);
 
+		if (ReleaseSemaphore(semaphoreGate, 1, NULL) == 0)
+		{
+			_tprintf(TEXT("\nLibertação do semaforo não foi um sucesso!\nError: %d\n"), GetLastError());
+		}
+
 		CloseHandle(semaphoreGate);
 
 		UnmapViewOfFile(pShared);
@@ -338,6 +353,11 @@ int _tmain(int argc, TCHAR * argv[]) {
 		CloseHandle(aviao.mutexMoveSync);
 
 		CloseHandle(mutexEntry);
+
+		if (ReleaseSemaphore(semaphoreGate, 1, NULL) == 0)
+		{
+			_tprintf(TEXT("\nLibertação do semaforo não foi um sucesso!\nError: %d\n"), GetLastError());
+		}
 
 		CloseHandle(semaphoreGate);
 
@@ -372,10 +392,8 @@ int _tmain(int argc, TCHAR * argv[]) {
 		{
 			_tprintf(TEXT("\nLibertação do semaforo não foi um sucesso!\nError: %d\n"), GetLastError());
 		}
-		else
-		{
-			CloseHandle(semaphoreGate);
-		}
+
+		CloseHandle(semaphoreGate);
 
 		UnmapViewOfFile(pShared);
 
@@ -415,10 +433,8 @@ int _tmain(int argc, TCHAR * argv[]) {
 		{
 			_tprintf(TEXT("\nLibertação do semaforo não foi um sucesso!\nError: %d\n"), GetLastError());
 		}
-		else
-		{
-			CloseHandle(semaphoreGate);
-		}
+
+		CloseHandle(semaphoreGate);
 
 		UnmapViewOfFile(pShared);
 
@@ -460,10 +476,8 @@ int _tmain(int argc, TCHAR * argv[]) {
 		{
 			_tprintf(TEXT("\nLibertação do semaforo não foi um sucesso!\nError: %d\n"), GetLastError());
 		}
-		else
-		{
-			CloseHandle(semaphoreGate);
-		}
+
+		CloseHandle(semaphoreGate);
 
 		UnmapViewOfFile(pShared);
 
@@ -504,10 +518,8 @@ int _tmain(int argc, TCHAR * argv[]) {
 		{
 			_tprintf(TEXT("\nLibertação do semaforo não foi um sucesso!\nError: %d\n"), GetLastError());
 		}
-		else
-		{
-			CloseHandle(semaphoreGate);
-		}
+
+		CloseHandle(semaphoreGate);
 
 		UnmapViewOfFile(pShared);
 
@@ -545,10 +557,8 @@ int _tmain(int argc, TCHAR * argv[]) {
 	{
 		_tprintf(TEXT("\nLibertação do semaforo não foi um sucesso!\nError: %d\n"), GetLastError());
 	}
-	else
-	{
-		CloseHandle(semaphoreGate);
-	}
+
+	CloseHandle(semaphoreGate);
 
 	UnmapViewOfFile(pShared);
 
