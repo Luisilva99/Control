@@ -60,38 +60,20 @@ int comandSwitcher(Passag * pass, TCHAR * comand) {
 		if ((auxB = _tcstok_s(NULL, TEXT(" "), &auxA)) != NULL)
 		{
 			if (_tcscmp(auxB, TEXT("DEBUG")) == 0) {
-				_tprintf(TEXT("\nDEBUG MSG - [Temporário | Deprecated] Introduz uma mensagem no primeiro avião.\n"));
+				_tprintf(TEXT("\nDEBUG MSG mensagem - Envia uma mensagem para o Control.\n"));
 			}
 		}
 
-		_tprintf(TEXT("\ninPlane stop/start - Abrir e fechar a aceitação de novos aviões.\n"));
-		_tprintf(TEXT("\ninPass stop/start - Abrir e fechar a aceitação de novos passageiros.\n"));
-		_tprintf(TEXT("\ncreateAero Nome posX poxY - Criar um novo aeroporto.\n"));
-		_tprintf(TEXT("\nlistAero - Apresenta a lista de todos os aeroportos registados e os seus detalhes.\n"));
-		_tprintf(TEXT("\nlistPlane - Apresenta a lista de todos aviões registados.\n"));
+		_tprintf(TEXT("\ninfoPass - Apresenta a informação atual do Passageiro.\n"));
 		_tprintf(TEXT("\nexit - Terminar Sistema.\n"));
 
 		return 1;
 	}
-	else if (_tcscmp(auxB, TEXT("inPlane")) == 0)
+	else if (_tcscmp(auxB, TEXT("infoPass")) == 0)
 	{
-		if ((auxB = _tcstok_s(NULL, TEXT(" "), &auxA)) != NULL)
-		{
-			if (_tcscmp(auxB, TEXT("start")) == 0)
-			{
+		listPassInfo((*pass));
 
-
-				return 1;
-			}
-			else if (_tcscmp(auxB, TEXT("stop")) == 0)
-			{
-
-
-				return 1;
-			}
-		}
-
-		return 0;
+		return 1;
 	}
 	else if (_tcscmp(auxB, TEXT("DEBUG")) == 0)
 	{
@@ -131,6 +113,64 @@ DWORD WINAPI tratamentoDeComandos(LPVOID lpParam)
 	} while (_tcscmp(comando, TEXT("exit")));
 
 	free(comando);
+
+	return 0;
+}
+
+
+DWORD WINAPI tratamentoDeComunicacao(LPVOID lpParam)
+{
+	Passag * pDataArray;
+	pDataArray = (Passag*)lpParam;
+
+	int i = 0;
+	BOOL ret;
+	DWORD n;
+
+	_tprintf(TEXT("[LEITOR] Esperar pelo pipe '%s' (WaitNamedPipe)\n"), PASSAG_PIPE);
+
+	if (!WaitNamedPipe(PASSAG_PIPE, NMPWAIT_WAIT_FOREVER)) {
+		_tprintf(TEXT("[ERRO] Ligar ao pipe '%s'! (WaitNamedPipe)\n"), PASSAG_PIPE);
+
+		return -1;
+	}
+
+	_tprintf(TEXT("[LEITOR] Ligação ao pipe do escritor... (CreateFile)\n"));
+
+	pDataArray->hPipe = CreateFile(PASSAG_PIPE, GENERIC_READ | GENERIC_WRITE, 0, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
+
+	if (pDataArray->hPipe == NULL) {
+		_tprintf(TEXT("[ERRO] Ligar ao pipe '%s'! (CreateFile)\n"), PASSAG_PIPE);
+
+		return -2;
+	}
+
+	_tprintf(TEXT("[LEITOR] Liguei-me...\n"));
+
+	_stprintf_s(pDataArray->msg, TAM, TEXT("Passag %s %s %s %d"), pDataArray->nome, pDataArray->partida, pDataArray->destino, pDataArray->tempo);
+
+	if (!WriteFile(pDataArray->hPipe, pDataArray->msg, _tcslen(pDataArray->msg) * sizeof(TCHAR), &n, NULL)) {
+		_tprintf(TEXT("[ERRO] Escrever no pipe! (WriteFile)\n"));
+
+		return -3;
+	}
+
+	FlushFileBuffers(pDataArray->hPipe);
+
+	while (1) {
+		ret = ReadFile(pDataArray->hPipe, pDataArray->msg, sizeof(pDataArray->msg), &n, NULL);
+		pDataArray->msg[n / sizeof(TCHAR)] = '\0';
+		if (!ret || !n) {
+			_tprintf(TEXT("[LEITOR] %d %d... (ReadFile)\n"), ret, n);
+
+			break;
+		}
+		_tprintf(TEXT("[LEITOR] Recebi %d bytes: '%s'... (ReadFile)\n"), n, pDataArray->msg);
+	}
+
+	CloseHandle(pDataArray->hPipe);
+
+	//Sleep(200);
 
 	return 0;
 }

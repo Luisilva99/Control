@@ -34,17 +34,22 @@
 
 //Variáveis da Sincronização//
 #define KILLER_TRIGGER TEXT("KillAllSystems")
+#define SENDER_TRIGGER TEXT("SendMsg")
 #define CONTROL_SEMAPHORE_PASSAG_ENTRY TEXT("PassagGate")
+#define PASSAG_PIPE TEXT("\\\\.\\pipe\\PassagComs")
 //--------------------------//
 
 //Estrutura passageiros//
 typedef struct
 {
-	int tempo;						//tempo de espera / ao fim deste tempo o passageiro vai se embora
-	int voar;						//estado atual (em espera / em viagem)
-	TCHAR nome[TAM];				//nome do passageiro
-	TCHAR destino[TAM];				//aeroporto de destino
-	TCHAR partida[TAM];				//aeroporto de partida
+	int tempo;						// Tempo de espera / ao fim deste tempo o passageiro vai se embora
+	int voar;						// Estado atual (em espera / em viagem)
+	TCHAR nome[TAM];				// Nome do passageiro
+	TCHAR destino[TAM];				// Aeroporto de destino
+	TCHAR partida[TAM];				// Aeroporto de partida
+	HANDLE hPipe;					// Handle de coms Pipe
+	TCHAR resp[TAM];				// Resposta do Control
+	TCHAR msg[TAM];					// Msg do Control
 } Passag;
 //---------------------//
 
@@ -69,6 +74,11 @@ void listPassInfo(Passag pass);
 //Recebe:
 //		lpParam	-	Dados do Passag
 DWORD WINAPI tratamentoDeComandos(LPVOID lpParam);
+
+//Thread de Tratamento de Comunicação por Pipe
+//Recebe:
+//		lpParam	-	Dados do Passag
+DWORD WINAPI tratamentoDeComunicacao(LPVOID lpParam);
 
 //Função de Tratamento de Comandos do Passag
 //Recebe:

@@ -312,7 +312,7 @@ int comandSwitcher(ControlData * control, TCHAR * comand) {
 		if ((auxB = _tcstok_s(NULL, TEXT(" "), &auxA)) != NULL)
 		{
 			if (_tcscmp(auxB, TEXT("DEBUG")) == 0) {
-				_tprintf(TEXT("\nDEBUG MSG - [Temporário | Deprecated] Introduz uma mensagem no primeiro avião.\n"));
+				_tprintf(TEXT("\nDEBUG MSG mensagem - Tenta enviar uma mensagem global para os Passag conectados.\n"));
 			}
 		}
 
@@ -535,8 +535,15 @@ int comandSwitcher(ControlData * control, TCHAR * comand) {
 		if ((auxB = _tcstok_s(NULL, TEXT(" "), &auxA)) != NULL)
 		{
 			if (_tcscmp(auxB, TEXT("MSG")) == 0) {
+				if ((auxB = _tcstok_s(NULL, TEXT(" "), &auxA)) != NULL) {
+					//_stprintf_s(control->msg, TAM, TEXT("%s"), auxB);
 
-				return 1;
+					SetEvent(control->passagSender);
+
+					return 1;
+				}
+
+				return 0;
 			}
 
 			return 0;
@@ -828,6 +835,167 @@ DWORD WINAPI bufferCircular(LPVOID lpParam)
 		_stprintf_s(control->shared->tCircBuffer.buffer[i].msg, TAM_INPUT, TEXT("%s"), TEXT(""));
 
 		(control->shared->tCircBuffer.locReadAtual)++;
+	}
+
+	return 0;
+}
+
+
+int veryPassagEntry(ControlData * control, TCHAR * msg) {
+	TCHAR * auxA;
+	TCHAR * auxB = _tcstok_s(msg, TEXT(" "), &auxA);
+
+	if (auxB == NULL)
+	{
+		return 0;
+	}
+
+	if (_tcscmp(auxB, TEXT("Passag")) == 0)
+	{
+		TCHAR partida[TAM], chegada[TAM], nome[TAM];
+		int tempo = INFINITE, p = 0, c = 0;
+
+		if ((auxB = _tcstok_s(NULL, TEXT(" "), &auxA)) != NULL)
+		{
+			_stprintf_s(nome, TAM, TEXT("%s"), auxB);
+		}
+
+		if ((auxB = _tcstok_s(NULL, TEXT(" "), &auxA)) != NULL)
+		{
+			_stprintf_s(partida, TAM, TEXT("%s"), auxB);
+		}
+
+		if ((auxB = _tcstok_s(NULL, TEXT(" "), &auxA)) != NULL)
+		{
+			_stprintf_s(chegada, TAM, TEXT("%s"), auxB);
+		}
+
+		if ((auxB = _tcstok_s(NULL, TEXT(" "), &auxA)) != NULL)
+		{
+			tempo = _tstoi(auxB);
+		}
+
+		for (int i = 0; i < control->shared->curAero; i++)
+		{
+			if (_tcscmp((control->shared->map)[i].aeroName, partida))
+			{
+				p = 1;
+
+				break;
+			}
+		}
+
+		for (int i = 0; i < control->shared->curAero; i++)
+		{
+			if (_tcscmp((control->shared->map)[i].aeroName, chegada))
+			{
+				c = 1;
+
+				break;
+			}
+		}
+
+		if (p && c)
+		{
+			return 1;
+		}
+	}
+
+	return 0;
+}
+
+
+DWORD WINAPI tratamentoDeComunicacao(LPVOID lpParam) {
+	ControlData * pDataArray;
+	pDataArray = (ControlData*)lpParam;
+
+	HANDLE hThread[MAX_PASS_CONTROL];
+	DWORD dwThread[MAX_PASS_CONTROL];
+
+	for (int i = 0; i < MAX_PASS_CONTROL; i++)
+	{
+		_tprintf(TEXT("[ESCRITOR] Criar uma cópia do pipe '%s' (CreateNamedPipe)\n"), PASSAG_PIPE);//DEBUG
+
+		pDataArray->Pass[i].Comns = CreateNamedPipe(PASSAG_PIPE,
+			PIPE_ACCESS_DUPLEX |     // read/write access
+			FILE_FLAG_OVERLAPPED,
+			PIPE_WAIT | PIPE_TYPE_MESSAGE | PIPE_READMODE_MESSAGE,
+			MAX_PASS_CONTROL,
+			sizeof(TCHAR) * TAM,
+			sizeof(TCHAR) * TAM,
+			1000,
+			NULL);
+
+		if (pDataArray->Pass[i].Comns == INVALID_HANDLE_VALUE) {
+			_tprintf(TEXT("[ERRO] Criar Named Pipe! (CreateNamedPipe)"));
+
+			return -1;
+		}
+	}
+
+
+
+	//Sleep(2000);
+
+	/*CloseHandle(pDataArray->hPipeComsWrite);*/
+
+	return 0;
+}
+
+
+DWORD WINAPI ComsManager(LPVOID lpParam) {
+	Passag * pass;
+	pass = (Passag*)lpParam;
+
+	BOOL ret;
+	DWORD n;
+
+	while (1) {
+		_tprintf(TEXT("[ESCRITOR] Esperar ligação de um leitor (ConnectNamedPipe)\n"));
+		if (!ConnectNamedPipe(pass->Comns, NULL)) {
+			_tprintf(TEXT("[ERRO] Ligação ao leitor! (ConnectNamedPipe\n"));
+
+			return -3;
+		}
+		do {
+			//WaitForSingleObject(pDataArray->passagSender, INFINITE);
+
+			ret = ReadFile(pass->Comns, pass->msg, sizeof(pass->msg), &n, NULL);
+
+			pass->msg[n / sizeof(TCHAR)] = '\0';
+
+			_tprintf(TEXT("[LEITOR] Recebi %d bytes: '%s'... (ReadFile)\n"), n, pass->msg);
+
+			if (!veryPassagEntry(pass, pass->msg))
+			{
+				_stprintf_s(pass->msg, TAM, TEXT("%s"), TEXT("NO"));
+			}
+			else
+			{
+				_stprintf_s(pass->msg, TAM, TEXT("%s"), TEXT("YES"));
+			}
+
+			if (!WriteFile(pass->Comns, pass->msg, _tcslen(pass->msg) * sizeof(TCHAR), &n, NULL)) {
+				_tprintf(TEXT("[ERRO] Escrever no pipe! (WriteFile)\n"));
+
+				break;
+			}
+
+			FlushFileBuffers(pass->Comns);
+
+			_tprintf(TEXT("[ESCRITOR] Enviei %d bytes ao leitor (WriteFile)\n"), n);
+
+		} while (_tcscmp(pass->msg, TEXT("fim")));
+
+		_tprintf(TEXT("[ESCRITOR] Desligar o pipe (DisconnectNamedPipe)\n"));
+
+		_stprintf_s(pass->msg, TAM, TEXT("%s"), TEXT(""));//DEBUG / Limpeza
+
+		if (!DisconnectNamedPipe(pass->Comns)) {
+			_tprintf(TEXT("[ERRO] Desligar o pipe! (DisconnectNamedPipe)"));
+
+			return -4;
+		}
 	}
 
 	return 0;

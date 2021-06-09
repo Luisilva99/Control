@@ -47,11 +47,14 @@
 //Estrutura passageiros//
 typedef struct
 {
-	int tempo;						//tempo de espera / ao fim deste tempo o passageiro vai se embora
-	int voar;						//estado atual (em espera / em viagem)
-	TCHAR nome[TAM];				//nome do passageiro
-	TCHAR destino[TAM];				//aeroporto de chegada
-	TCHAR partida[TAM];				//aeroporto de partida
+	int tempo;						// Tempo de espera / ao fim deste tempo o passageiro vai se embora
+	int voar;						// Estado atual (em espera / em viagem)
+	TCHAR nome[TAM];				// Nome do passageiro
+	TCHAR destino[TAM];				// Aeroporto de destino
+	TCHAR partida[TAM];				// Aeroporto de partida
+	HANDLE Comns;					// Pipe de Comunicação deste Passag
+	TCHAR msg[TAM];					// Messagem para Passag
+	TCHAR resp[TAM];				// Resposta de Passag
 } Passag;
 //---------------------//
 

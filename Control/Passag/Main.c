@@ -12,13 +12,13 @@ int _tmain(int argc, TCHAR* argv[]) {
 
 
 
-	//Variaveis de comunicação dos pipes
-	HANDLE hPipe;
-	DWORD dwWritten;
+	//// Variaveis de comunicação dos pipes
+	//HANDLE hPipe;
+	//DWORD dwWritten;
 
 	// Threads
-	HANDLE hThread[2];
-	DWORD dwThread[2];
+	HANDLE hThread[3];
+	DWORD dwThread[3];
 
 	// Sincronização
 	HANDLE semaphorePassagGate;
@@ -86,8 +86,6 @@ int _tmain(int argc, TCHAR* argv[]) {
 	{
 		_tprintf(TEXT("\nErro ao abrir o semaforo de sincronização!\nErro %d\n"), GetLastError());
 
-		//libertação de memória
-
 		_gettch();
 
 		return -3;
@@ -96,8 +94,6 @@ int _tmain(int argc, TCHAR* argv[]) {
 	if (WaitForSingleObject(semaphorePassagGate, 0) == WAIT_TIMEOUT)
 	{
 		_tprintf(TEXT("\nErro ao entrar no Sistema Control.\nSistema encontra-se lotado!\n"));
-
-		//libertação de memória
 
 		_gettch();
 
@@ -159,13 +155,39 @@ int _tmain(int argc, TCHAR* argv[]) {
 		return -7;
 	}
 
+	hThread[2] = CreateThread(
+		NULL,
+		0,
+		tratamentoDeComunicacao,
+		(LPVOID)&pass,
+		0,
+		&dwThread[2]
+	);
+
+	if (hThread[2] == NULL)
+	{
+		_tprintf(TEXT("CreateThread de Tratamento de Comunicação por Pipe failed, GLE=%d.\n"), GetLastError());
+
+		CloseHandle(hThread[1]);
+
+		CloseHandle(hThread[0]);
+
+		ReleaseSemaphore(semaphorePassagGate, 1, 0);
+
+		CloseHandle(semaphorePassagGate);
+
+		_gettch();
+
+		return -8;
+	}
+
 	//######-------######//
 
-	WaitForMultipleObjects(2, hThread, FALSE, INFINITE);
+	WaitForMultipleObjects(3, hThread, FALSE, INFINITE);
 
 	_tprintf(TEXT("\nLibertação da memória do Passag: %d\tNome: %s\n"), (int)GetCurrentProcessId(), pass.nome);
 
-	for (int i = 0; i < 2; i++)
+	for (int i = 0; i < 3; i++)
 	{
 		CloseHandle(hThread[i]);
 	}

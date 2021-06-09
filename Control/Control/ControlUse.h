@@ -31,20 +31,25 @@
 #define CONTROL_SEMAPHORE_BUFFER_READER TEXT("ReadCircularBuffer")
 #define PLANE_MUTEX_WRITER TEXT("WriteCircularBuffer")
 #define KILLER_TRIGGER TEXT("KillAllSystems")
+#define SENDER_TRIGGER TEXT("SendMsg")
 #define PLANE_MOVE_SYNC TEXT("MoveSync")
 #define CONTROL_MUTEX_ENTRY TEXT("MutexEntry")
 #define CONTROL_SEMAPHORE_ENTRY TEXT("PlaneGate")
 #define CONTROL_SEMAPHORE_PASSAG_ENTRY TEXT("PassagGate")
+#define PASSAG_PIPE TEXT("\\\\.\\pipe\\PassagComs")
 //--------------------------//
 
 //Estrutura passageiros//
 typedef struct
 {
-	int tempo;						//tempo de espera / ao fim deste tempo o passageiro vai se embora
-	int voar;						//estado atual (em espera / em viagem)
-	TCHAR nome[TAM];				//nome do passageiro
-	TCHAR destino[TAM];				//aeroporto de destino
-	TCHAR partida[TAM];				//aeroporto de partida
+	int tempo;						// Tempo de espera / ao fim deste tempo o passageiro vai se embora
+	int voar;						// Estado atual (em espera / em viagem)
+	TCHAR nome[TAM];				// Nome do passageiro
+	TCHAR destino[TAM];				// Aeroporto de destino
+	TCHAR partida[TAM];				// Aeroporto de partida
+	HANDLE Comns;					// Pipe de Comunicação deste Passag
+	TCHAR msg[TAM];					// Messagem para Passag
+	TCHAR resp[TAM];				// Resposta de Passag
 } Passag;
 //---------------------//
 
@@ -114,10 +119,15 @@ typedef struct {
 	HANDLE entry;					//Mutex de aceitação de novos Aviões
 	int entryStopped;				//Flag de indicador de paragem de aceitação de novos Aviões
 	HANDLE systemShutdown;			//Evento para terminar todos os programas
+	HANDLE passagSender;			//Evento para aviso de escrita em todos os pipes dos Passag
 	HANDLE readBuffer;				//Semáforo para leitura do Buffer Circular
 	SharedBuffer * shared;			//Memória Partilhada com Aviao
 } ControlData;
 //------------------------------//
+
+//Estrutura de Comunicação//
+
+//------------------------//
 
 //Função de Obtenção de inteiros
 //Retorna:
@@ -189,6 +199,20 @@ DWORD WINAPI tratamentoDeComandos(LPVOID lpParam);
 //Recebe:
 //		lpParam	-	Dados do Control
 DWORD WINAPI bufferCircular(LPVOID lpParam);
+
+//Thread de Tratamento de Comunicação por Pipe
+//Recebe:
+//		lpParam	-	Dados do Control
+DWORD WINAPI tratamentoDeComunicacao(LPVOID lpParam);
+
+//Função de Verificação dos dados de entrada dos Passag
+//Recebe:
+//		control	-	Dados do Control
+//		msg		-	Mensagem enviada pelo Passag para Tratamento de Entrada
+//Retorna:
+//		0	-	Erros na introdução de informações para entrada
+//		1	-	Entrada autorizada
+int veryPassagEntry(ControlData * control, TCHAR * msg);
 
 //Função de Tratamento de Comandos do Control
 //Recebe:

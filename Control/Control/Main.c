@@ -23,8 +23,8 @@ int _tmain(int argc, TCHAR * argv[]) {
 	HANDLE mutexWriters;
 
 	// Threads
-	HANDLE hThread[2];
-	DWORD dwThread[2];
+	HANDLE hThread[3];
+	DWORD dwThread[3];
 
 	// Dados do Control
 	ControlData control;
@@ -32,10 +32,10 @@ int _tmain(int argc, TCHAR * argv[]) {
 	SharedBuffer shared;
 
 
-	//Named Pipes
-	HANDLE hPipe;
-	char buffer[1024];
-	DWORD dwRead;
+	//// Named Pipes
+	//HANDLE hPipe;
+	//char buffer[1024];
+	//DWORD dwRead;
 
 #ifdef UNICODE
 	_setmode(_fileno(stdin), _O_WTEXT);
@@ -442,6 +442,40 @@ int _tmain(int argc, TCHAR * argv[]) {
 
 	_tprintf(TEXT("\nSemáforo de entrada de Passageiros foi criado com sucesso!\n"));// DEBUG
 
+	control.passagSender = CreateEvent(
+		NULL,
+		FALSE,
+		FALSE,
+		SENDER_TRIGGER
+	);
+
+	if (control.passagSender == NULL)
+	{
+		_tprintf(TEXT("\nCriação do evento de envio de mensagens por Pipes não foi criado com sucesso!\nErro %d\n"), GetLastError());
+
+		CloseHandle(semaphorePassagGate);
+
+		CloseHandle(control.readBuffer);
+
+		CloseHandle(mutexWriters);
+
+		CloseHandle(control.systemShutdown);
+
+		CloseHandle(semaphoreGate);
+
+		CloseHandle(mutexMoveSync);
+
+		UnmapViewOfFile(pShared);
+
+		CloseHandle(hMapFile);
+
+		_gettch();
+
+		return -15;
+	}
+
+	_tprintf(TEXT("\nCriação do evento de envio de mensagens por Pipes foi criado com sucesso!\n"));//DEBUG
+
 	//#####------------#####//
 
 
@@ -474,8 +508,7 @@ int _tmain(int argc, TCHAR * argv[]) {
 //
 //////////////////////////////////////////////////////////////////////
 
-
-//######Lançamento das Threads######//
+	//######Lançamento das Threads######//
 
 
 	hThread[0] = CreateThread(
@@ -491,41 +524,7 @@ int _tmain(int argc, TCHAR * argv[]) {
 	{
 		_tprintf(TEXT("CreateThread failed, GLE=%d.\n"), GetLastError());
 
-		CloseHandle(semaphorePassagGate);
-
-		CloseHandle(control.readBuffer);
-
-		CloseHandle(mutexWriters);
-
-		CloseHandle(control.systemShutdown);
-
-		CloseHandle(control.entry);
-
-		CloseHandle(semaphoreGate);
-
-		CloseHandle(mutexMoveSync);
-
-		UnmapViewOfFile(pShared);
-
-		CloseHandle(hMapFile);
-
-		return -15;
-	}
-
-	hThread[1] = CreateThread(
-		NULL,
-		0,
-		bufferCircular,
-		(LPVOID)&control,
-		0,
-		&dwThread[1]
-	);
-
-	if (hThread[1] == NULL)
-	{
-		_tprintf(TEXT("CreateBufferThread failed, GLE=%d.\n"), GetLastError());
-
-		CloseHandle(hThread[0]);
+		CloseHandle(control.passagSender);
 
 		CloseHandle(semaphorePassagGate);
 
@@ -548,16 +547,96 @@ int _tmain(int argc, TCHAR * argv[]) {
 		return -16;
 	}
 
+	hThread[1] = CreateThread(
+		NULL,
+		0,
+		bufferCircular,
+		(LPVOID)&control,
+		0,
+		&dwThread[1]
+	);
+
+	if (hThread[1] == NULL)
+	{
+		_tprintf(TEXT("CreateBufferThread failed, GLE=%d.\n"), GetLastError());
+
+		CloseHandle(hThread[0]);
+
+		CloseHandle(control.passagSender);
+
+		CloseHandle(semaphorePassagGate);
+
+		CloseHandle(control.readBuffer);
+
+		CloseHandle(mutexWriters);
+
+		CloseHandle(control.systemShutdown);
+
+		CloseHandle(control.entry);
+
+		CloseHandle(semaphoreGate);
+
+		CloseHandle(mutexMoveSync);
+
+		UnmapViewOfFile(pShared);
+
+		CloseHandle(hMapFile);
+
+		return -17;
+	}
+
+	hThread[2] = CreateThread(
+		NULL,
+		0,
+		tratamentoDeComunicacao,
+		(LPVOID)&control,
+		0,
+		&dwThread[2]
+	);
+
+	if (hThread[2] == NULL)
+	{
+		_tprintf(TEXT("Create Passag Coms Test failed, GLE=%d.\n"), GetLastError());
+
+		CloseHandle(hThread[1]);
+
+		CloseHandle(hThread[0]);
+
+		CloseHandle(control.passagSender);
+
+		CloseHandle(semaphorePassagGate);
+
+		CloseHandle(control.readBuffer);
+
+		CloseHandle(mutexWriters);
+
+		CloseHandle(control.systemShutdown);
+
+		CloseHandle(control.entry);
+
+		CloseHandle(semaphoreGate);
+
+		CloseHandle(mutexMoveSync);
+
+		UnmapViewOfFile(pShared);
+
+		CloseHandle(hMapFile);
+
+		return -18;
+	}
+
 	//######----------------------######//
 
-	WaitForMultipleObjects(2, hThread, FALSE, INFINITE);
+	WaitForMultipleObjects(3, hThread, FALSE, INFINITE);
 
 	_tprintf(TEXT("\nLibertação das Threads criadas!\nLibertação dos HANDLES de sincronização!\nLibertação da Memória Partilhada!\n"));
 
-	for (int i = 0; i < 2; i++)
+	for (int i = 0; i < 3; i++)
 	{
 		CloseHandle(hThread[i]);
 	}
+
+	CloseHandle(control.passagSender);
 
 	CloseHandle(semaphorePassagGate);
 
