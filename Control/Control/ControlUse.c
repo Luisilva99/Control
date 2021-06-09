@@ -321,6 +321,7 @@ int comandSwitcher(ControlData * control, TCHAR * comand) {
 		_tprintf(TEXT("\ncreateAero Nome posX poxY - Criar um novo aeroporto.\n"));
 		_tprintf(TEXT("\nlistAero - Apresenta a lista de todos os aeroportos registados e os seus detalhes.\n"));
 		_tprintf(TEXT("\nlistPlane - Apresenta a lista de todos aviões registados.\n"));
+		_tprintf(TEXT("\nlistPassag - Apresenta a lista de todos passageiros registados.\n"));
 		_tprintf(TEXT("\nexit - Terminar Sistema.\n"));
 
 		return 1;
@@ -520,6 +521,22 @@ int comandSwitcher(ControlData * control, TCHAR * comand) {
 		for (int i = 0; i < control->shared->curPlane; i++)
 		{
 			listPlaneInfo((control->shared->planes)[i]);
+		}
+
+		return 1;
+	}
+	else if (_tcscmp(auxB, TEXT("listPassag")) == 0)
+	{
+		if (control->curPass <= 0)
+		{
+			_tprintf(TEXT("\nNão existem Passageiros no Sistema.\n"));
+
+			return 0;
+		}
+
+		for (int i = 0; i < control->curPass; i++)
+		{
+			listPassInfo((control->Pass)[i]);
 		}
 
 		return 1;
@@ -841,7 +858,7 @@ DWORD WINAPI bufferCircular(LPVOID lpParam)
 }
 
 
-int veryPassagEntry(ControlData * control, TCHAR * msg) {
+int veryPassagEntry(MapUnit * map[], int * curAero, Passag * pass, int * curPass, TCHAR * msg) {
 	TCHAR * auxA;
 	TCHAR * auxB = _tcstok_s(msg, TEXT(" "), &auxA);
 
@@ -875,9 +892,9 @@ int veryPassagEntry(ControlData * control, TCHAR * msg) {
 			tempo = _tstoi(auxB);
 		}
 
-		for (int i = 0; i < control->shared->curAero; i++)
+		for (int i = 0; i < (*curAero); i++)
 		{
-			if (_tcscmp((control->shared->map)[i].aeroName, partida))
+			if (_tcscmp((*map)[i].aeroName, partida))
 			{
 				p = 1;
 
@@ -885,9 +902,9 @@ int veryPassagEntry(ControlData * control, TCHAR * msg) {
 			}
 		}
 
-		for (int i = 0; i < control->shared->curAero; i++)
+		for (int i = 0; i < (*curAero); i++)
 		{
-			if (_tcscmp((control->shared->map)[i].aeroName, chegada))
+			if (_tcscmp((*map)[i].aeroName, chegada))
 			{
 				c = 1;
 
@@ -897,6 +914,14 @@ int veryPassagEntry(ControlData * control, TCHAR * msg) {
 
 		if (p && c)
 		{
+			_stprintf_s(pass->partida, TAM, TEXT("%s"), partida);
+
+			_stprintf_s(pass->destino, TAM, TEXT("%s"), chegada);
+
+			_stprintf_s(pass->nome, TAM, TEXT("%s"), nome);
+
+			curPass++;
+
 			return 1;
 		}
 	}
@@ -911,6 +936,7 @@ DWORD WINAPI tratamentoDeComunicacao(LPVOID lpParam) {
 
 	HANDLE hThread[MAX_PASS_CONTROL];
 	DWORD dwThread[MAX_PASS_CONTROL];
+	PassagComsData pass[MAX_PASS_CONTROL];//VER este que pode ser a causa do problema de falta de ponteiro de ligação com os dados do Control
 
 	for (int i = 0; i < MAX_PASS_CONTROL; i++)
 	{
@@ -933,65 +959,102 @@ DWORD WINAPI tratamentoDeComunicacao(LPVOID lpParam) {
 		}
 	}
 
+	for (int i = 0; i < MAX_PASS_CONTROL; i++)
+	{
+		pass[i].Pass = &pDataArray->Pass[i];
 
+		pass[i].curAero = &pDataArray->shared->curAero;
 
-	//Sleep(2000);
+		for (int j = 0; j < MAX_AERO; j++)
+		{
+			pass[i].map[j] = &pDataArray->shared->map[j];
+		}
 
-	/*CloseHandle(pDataArray->hPipeComsWrite);*/
+		pass[i].curPass = &pDataArray->curPass;
+	}
+
+	//#####Lançamento ComsManager's#####//
+
+	for (int i = 0; i < MAX_PASS_CONTROL; i++)
+	{
+		hThread[i] = CreateThread(
+			NULL,
+			0,
+			ComsManager,
+			(LPVOID)&pass[i],
+			0,
+			&dwThread[i]
+		);
+
+		if (hThread[i] == NULL)
+		{
+			_tprintf(TEXT("CreateThread failed, GLE=%d.\n"), GetLastError());
+
+			return -2;
+		}
+	}
+
+	//#####------------------------#####//
+
+	WaitForMultipleObjects(MAX_PASS_CONTROL, hThread, TRUE, INFINITE);
+
+	for (int i = 0; i < MAX_PASS_CONTROL; i++)
+	{
+		CloseHandle(hThread[i]);
+	}
 
 	return 0;
 }
 
 
 DWORD WINAPI ComsManager(LPVOID lpParam) {
-	Passag * pass;
-	pass = (Passag*)lpParam;
+	PassagComsData * pass;
+	pass = (PassagComsData*)lpParam;
 
 	BOOL ret;
 	DWORD n;
 
 	while (1) {
 		_tprintf(TEXT("[ESCRITOR] Esperar ligação de um leitor (ConnectNamedPipe)\n"));
-		if (!ConnectNamedPipe(pass->Comns, NULL)) {
+
+		if (!ConnectNamedPipe(pass->Pass->Comns, NULL)) {
 			_tprintf(TEXT("[ERRO] Ligação ao leitor! (ConnectNamedPipe\n"));
 
 			return -3;
 		}
 		do {
-			//WaitForSingleObject(pDataArray->passagSender, INFINITE);
+			ret = ReadFile(pass->Pass->Comns, pass->Pass->msg, sizeof(pass->Pass->msg), &n, NULL);
 
-			ret = ReadFile(pass->Comns, pass->msg, sizeof(pass->msg), &n, NULL);
+			pass->Pass->msg[n / sizeof(TCHAR)] = '\0';
 
-			pass->msg[n / sizeof(TCHAR)] = '\0';
+			_tprintf(TEXT("[LEITOR] Recebi %d bytes: '%s'... (ReadFile)\n"), n, pass->Pass->msg);
 
-			_tprintf(TEXT("[LEITOR] Recebi %d bytes: '%s'... (ReadFile)\n"), n, pass->msg);
-
-			if (!veryPassagEntry(pass, pass->msg))
+			if (!veryPassagEntry(pass->map, pass->curAero, pass->Pass, pass->curPass, pass->Pass->msg))
 			{
-				_stprintf_s(pass->msg, TAM, TEXT("%s"), TEXT("NO"));
+				_stprintf_s(pass->Pass->msg, TAM, TEXT("%s"), TEXT("NO"));
 			}
 			else
 			{
-				_stprintf_s(pass->msg, TAM, TEXT("%s"), TEXT("YES"));
+				_stprintf_s(pass->Pass->msg, TAM, TEXT("%s"), TEXT("YES"));
 			}
 
-			if (!WriteFile(pass->Comns, pass->msg, _tcslen(pass->msg) * sizeof(TCHAR), &n, NULL)) {
+			if (!WriteFile(pass->Pass->Comns, pass->Pass->msg, _tcslen(pass->Pass->msg) * sizeof(TCHAR), &n, NULL)) {
 				_tprintf(TEXT("[ERRO] Escrever no pipe! (WriteFile)\n"));
 
 				break;
 			}
 
-			FlushFileBuffers(pass->Comns);
+			FlushFileBuffers(pass->Pass->Comns);
 
 			_tprintf(TEXT("[ESCRITOR] Enviei %d bytes ao leitor (WriteFile)\n"), n);
 
-		} while (_tcscmp(pass->msg, TEXT("fim")));
+		} while (_tcscmp(pass->Pass->msg, TEXT("fim")));
 
 		_tprintf(TEXT("[ESCRITOR] Desligar o pipe (DisconnectNamedPipe)\n"));
 
-		_stprintf_s(pass->msg, TAM, TEXT("%s"), TEXT(""));//DEBUG / Limpeza
+		_stprintf_s(pass->Pass->msg, TAM, TEXT("%s"), TEXT(""));//DEBUG / Limpeza
 
-		if (!DisconnectNamedPipe(pass->Comns)) {
+		if (!DisconnectNamedPipe(pass->Pass->Comns)) {
 			_tprintf(TEXT("[ERRO] Desligar o pipe! (DisconnectNamedPipe)"));
 
 			return -4;

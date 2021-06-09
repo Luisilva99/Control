@@ -126,7 +126,12 @@ typedef struct {
 //------------------------------//
 
 //Estrutura de Comunicação//
-
+typedef struct {
+	Passag * Pass;					//Passageiros
+	MapUnit * map[MAX_AERO];		//Aeroportos
+	int * curAero;					//Máximo de Aeroportos e tamanho atual
+	int * curPass;					//Máximo de Passageiros e tamanho atual
+} PassagComsData;
 //------------------------//
 
 //Função de Obtenção de inteiros
@@ -200,19 +205,27 @@ DWORD WINAPI tratamentoDeComandos(LPVOID lpParam);
 //		lpParam	-	Dados do Control
 DWORD WINAPI bufferCircular(LPVOID lpParam);
 
-//Thread de Tratamento de Comunicação por Pipe
+//Thread de Lançamento de Comunicação por Pipe
 //Recebe:
 //		lpParam	-	Dados do Control
 DWORD WINAPI tratamentoDeComunicacao(LPVOID lpParam);
 
+//Thread de Tratamento de Comunicação por Pipe
+//Recebe:
+//		lpParam	-	Dados PassagComsData
+DWORD WINAPI ComsManager(LPVOID lpParam);
+
 //Função de Verificação dos dados de entrada dos Passag
 //Recebe:
-//		control	-	Dados do Control
+//		map		-	Lista de Aeroportos no Control
+//		curAero	-	Número de Aeroportos existentes no Control
+//		pass	-	Passageiro atual
+//		curPass	-	Número de Passageiros existentes no Control
 //		msg		-	Mensagem enviada pelo Passag para Tratamento de Entrada
 //Retorna:
 //		0	-	Erros na introdução de informações para entrada
 //		1	-	Entrada autorizada
-int veryPassagEntry(ControlData * control, TCHAR * msg);
+int veryPassagEntry(MapUnit * map[], int * curAero, Passag * pass, int * curPass, TCHAR * msg);
 
 //Função de Tratamento de Comandos do Control
 //Recebe:
