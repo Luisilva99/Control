@@ -81,11 +81,11 @@ int _tmain(int argc, TCHAR * argv[]) {
 	{
 		valorArgumento = _tstoi(argv[1]);
 
-		if (valorArgumento > MAX_PASS)
+		if (valorArgumento > MAX_PASS || valorArgumento < 1)
 		{
 			valorArgumento = MAX_PASS;
 
-			_tprintf(TEXT("\nValor máximo de lotação do sistema foi ultrapassado!\nLotação do Avião: %d\n"), MAX_PASS);
+			_tprintf(TEXT("\nValor máximo de lotação do sistema foi ultrapassado / inválido!\nLotação predefinida pelo Sistema do Avião: %d\n"), MAX_PASS);
 		}
 
 		aviao.maxPass = valorArgumento;
@@ -95,11 +95,11 @@ int _tmain(int argc, TCHAR * argv[]) {
 	{
 		valorArgumento = _tstoi(argv[2]);
 
-		if (valorArgumento > MAX_VELO)
+		if (valorArgumento > MAX_VELO || valorArgumento < 1)
 		{
 			valorArgumento = MAX_VELO;
 
-			_tprintf(TEXT("\nValor máximo de velocidade do sistema foi ultrapassado!\nVelocidade do Avião: %d\n"), MAX_VELO);
+			_tprintf(TEXT("\nValor máximo de velocidade do sistema foi ultrapassado / inválido!\nVelocidade predefinida pelo Sistema do Avião: %d\n"), MAX_VELO);
 		}
 
 		aviao.velocidade = valorArgumento;
@@ -537,6 +537,11 @@ int _tmain(int argc, TCHAR * argv[]) {
 	WaitForMultipleObjects(3, hThread, FALSE, INFINITE);
 
 	//-----------------//
+
+	if (aviao.voar)
+	{
+		TerminateThread(hThread[1], dwThread[1]);
+	}
 
 	for (int i = 0; i < 3; i++)
 	{

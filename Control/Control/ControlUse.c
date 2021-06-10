@@ -534,7 +534,7 @@ int comandSwitcher(ControlData * control, TCHAR * comand) {
 			return 0;
 		}
 
-		for (int i = 0; i < control->curPass; i++)
+		for (int i = 0; i < control->maxPass; i++)
 		{
 			listPassInfo((control->Pass)[i]);
 		}
@@ -555,7 +555,7 @@ int comandSwitcher(ControlData * control, TCHAR * comand) {
 				if ((auxB = _tcstok_s(NULL, TEXT(" "), &auxA)) != NULL) {
 					//_stprintf_s(control->msg, TAM, TEXT("%s"), auxB);
 
-					SetEvent(control->passagSender);
+					//SetEvent(control->passagSender);
 
 					return 1;
 				}
@@ -692,23 +692,26 @@ DWORD WINAPI bufferCircular(LPVOID lpParam)
 			{
 				id = _tstoi(auxB);
 
-				//reestruturar tudo este comando//
-
 				for (int i = 0; i < control->shared->curPlane; i++)
 				{
 					if ((control->shared->planes)[i].id == id)
 					{
 						if ((control->shared->planes)[i].voar)
 						{
-							_tprintf(TEXT("\nAvião %d sofreu um acidente e foi perdido!\n"), id);
+							if (deletePlaneFlying(control, i))
+							{
+								_tprintf(TEXT("\nAvião %d sofreu um acidente e foi perdido!\n"), id);
+							}
+							else
+							{
+								_tprintf(TEXT("\nErro ao tentar terminar o Avião %d.\n"), id);
+							}
 
-							deletePlane(control, id);
+							break;
 						}
 						else
 						{
 							int k = 0, t = 0;
-
-							_tprintf(TEXT("\nPiloto do Avião %d reformou-se e foi perdido!\n"), id);
 
 							for (; k < control->shared->curAero; k++)
 							{
@@ -732,7 +735,11 @@ DWORD WINAPI bufferCircular(LPVOID lpParam)
 
 									_stprintf_s((control->shared->map)[k].hangar[(control->shared->map)[k].curHang].destino, TAM, TEXT("%s"), TEXT(""));
 									_stprintf_s((control->shared->map)[k].hangar[(control->shared->map)[k].curHang].partida, TAM, TEXT("%s"), TEXT(""));
+
+									//Se tiver passageiros avisar estes
 									ZeroMemory((control->shared->map)[k].hangar[(control->shared->map)[k].curHang].pass, sizeof(Passag) * MAX_PASS);
+									//
+
 									(control->shared->map)[k].hangar[(control->shared->map)[k].curHang].curPass = 0;
 									(control->shared->map)[k].hangar[(control->shared->map)[k].curHang].id = 0;
 									(control->shared->map)[k].hangar[(control->shared->map)[k].curHang].maxPass = 0;
@@ -751,7 +758,68 @@ DWORD WINAPI bufferCircular(LPVOID lpParam)
 								}
 							}
 
-							deletePlane(control, id);
+							if (deletePlaneFlying(control, i))
+							{
+								_tprintf(TEXT("\nPiloto do Avião %d reformou-se e foi perdido!\n"), id);
+							}
+							else
+							{
+								_tprintf(TEXT("\nErro ao tentar terminar o Avião %d.\n"), id);
+							}
+
+							break;
+						}
+					}
+				}
+			}
+		}
+		else if (_tcscmp(auxB, TEXT("Destino")) == 0)
+		{
+			int id, final_X, final_Y;
+			TCHAR destino[TAM], partida[TAM];
+
+			if ((auxB = _tcstok_s(NULL, TEXT(" "), &auxA)) != NULL)
+			{
+				id = _tstoi(auxB);
+
+				if ((auxB = _tcstok_s(NULL, TEXT(" "), &auxA)) != NULL)
+				{
+					_stprintf_s(partida, TAM, TEXT("%s"), auxB);
+
+					if ((auxB = _tcstok_s(NULL, TEXT(" "), &auxA)) != NULL)
+					{
+						_stprintf_s(destino, TAM, TEXT("%s"), auxB);
+
+						if ((auxB = _tcstok_s(NULL, TEXT(" "), &auxA)) != NULL)
+						{
+							final_X = _tstoi(auxB);
+
+							if ((auxB = _tcstok_s(NULL, TEXT(" "), &auxA)) != NULL)
+							{
+								final_Y = _tstoi(auxB);
+
+								for (int i = 0; i < control->shared->curAero; i++)
+								{
+									if (_tcscmp(partida, (control->shared->map)[i].aeroName))
+									{
+										for (int k = 0; k < (control->shared->map)[i].curHang; k++)
+										{
+											if ((control->shared->map)[i].hangar[k].id == id)
+											{
+												_stprintf_s((control->shared->map)[i].hangar[k].destino, TAM, TEXT("%s"), destino);
+
+												(control->shared->map)[i].hangar[k].final_X = final_X;
+
+												(control->shared->map)[i].hangar[k].final_Y = final_Y;
+
+												break;
+											}
+										}
+
+										break;
+									}
+								}
+							}
 						}
 					}
 				}
@@ -778,7 +846,11 @@ DWORD WINAPI bufferCircular(LPVOID lpParam)
 
 							_stprintf_s((control->shared->map)[i].hangar[(control->shared->map)[i].curHang].destino, TAM, TEXT("%s"), TEXT(""));
 							_stprintf_s((control->shared->map)[i].hangar[(control->shared->map)[i].curHang].partida, TAM, TEXT("%s"), TEXT(""));
+
+							//Avisar Passag que viagem começou
 							ZeroMemory((control->shared->map)[i].hangar[(control->shared->map)[i].curHang].pass, sizeof(Passag) * control->shared->planes[i].maxPass);
+							//
+
 							(control->shared->map)[i].hangar[(control->shared->map)[i].curHang].curPass = 0;
 							(control->shared->map)[i].hangar[(control->shared->map)[i].curHang].id = 0;
 							(control->shared->map)[i].hangar[(control->shared->map)[i].curHang].maxPass = 0;
@@ -823,13 +895,17 @@ DWORD WINAPI bufferCircular(LPVOID lpParam)
 						{
 							if ((control->shared->map)[i].maxHang == (control->shared->map)[i].curHang)
 							{
-								//DEBUG / ARRANJAR DEPO
+								//DEBUG / Eventualmente nunca irá acontecer
 								continue;
 							}
 
 							_stprintf_s((control->shared->map)[i].hangar[(control->shared->map)[i].curHang].destino, TAM, TEXT("%s"), TEXT(""));
 							_stprintf_s((control->shared->map)[i].hangar[(control->shared->map)[i].curHang].partida, TAM, TEXT("%s"), (control->shared->planes)[k].destino);
+
+							//Avisar Passag que deixaram de existir
 							ZeroMemory((control->shared->map)[i].hangar[(control->shared->map)[i].curHang].pass, sizeof(Passag) * control->shared->planes[i].maxPass);
+							//
+
 							(control->shared->map)[i].hangar[(control->shared->map)[i].curHang].curPass = 0;
 							(control->shared->map)[i].hangar[(control->shared->map)[i].curHang].id = (control->shared->planes)[k].id;
 							(control->shared->map)[i].hangar[(control->shared->map)[i].curHang].maxPass = (control->shared->planes)[k].maxPass;
@@ -843,6 +919,8 @@ DWORD WINAPI bufferCircular(LPVOID lpParam)
 							(control->shared->map)[i].hangar[(control->shared->map)[i].curHang].voar = 0;
 
 							(control->shared->map)[i].curHang++;
+
+							break;
 						}
 					}
 				}
@@ -936,7 +1014,7 @@ DWORD WINAPI tratamentoDeComunicacao(LPVOID lpParam) {
 
 	HANDLE hThread[MAX_PASS_CONTROL];
 	DWORD dwThread[MAX_PASS_CONTROL];
-	PassagComsData pass[MAX_PASS_CONTROL];//VER este que pode ser a causa do problema de falta de ponteiro de ligação com os dados do Control
+	PassagComsData pass[MAX_PASS_CONTROL];
 
 	for (int i = 0; i < MAX_PASS_CONTROL; i++)
 	{
@@ -1122,6 +1200,69 @@ int deletePlane(ControlData* control, int id) {
 				return 1;
 			}
 		}
+	}
+
+	return 0;
+}
+
+
+int deletePlaneFlying(ControlData* control, int pos) {
+	if (control->shared->curPlane == 1)
+	{
+		_stprintf_s(control->shared->planes[pos].destino, TAM, TEXT("%s"), TEXT(""));
+		_stprintf_s(control->shared->planes[pos].partida, TAM, TEXT("%s"), TEXT(""));
+
+		//Aviso Passag
+		ZeroMemory(control->shared->planes[pos].pass, sizeof(Passag) * control->maxPass);
+		//
+
+		control->shared->planes[pos].curPass = 0;
+		control->shared->planes[pos].id = 0;
+		control->shared->planes[pos].maxPass = 0;
+		control->shared->planes[pos].next_X = 0;
+		control->shared->planes[pos].next_Y = 0;
+		control->shared->planes[pos].final_X = 0;
+		control->shared->planes[pos].final_Y = 0;
+		control->shared->planes[pos].velocidade = 0;
+		control->shared->planes[pos].X = 0;
+		control->shared->planes[pos].Y = 0;
+		control->shared->planes[pos].voar = 0;
+
+		control->shared->curPlane--;
+
+		return 1;
+	}
+	else
+	{
+		//Avisar Passag / Limpar dados deles
+
+		//
+
+		int j = pos;
+
+		for (; j < (control->shared->curPlane - 1); j++)
+		{
+			control->shared->planes[j] = control->shared->planes[j + 1];
+		}
+
+		_stprintf_s(control->shared->planes[j + 1].destino, TAM, TEXT("%s"), TEXT(""));
+		_stprintf_s(control->shared->planes[j + 1].partida, TAM, TEXT("%s"), TEXT(""));
+		ZeroMemory(control->shared->planes[j + 1].pass, sizeof(Passag) * control->maxPass);
+		control->shared->planes[j + 1].curPass = 0;
+		control->shared->planes[j + 1].id = 0;
+		control->shared->planes[j + 1].maxPass = 0;
+		control->shared->planes[j + 1].next_X = 0;
+		control->shared->planes[j + 1].next_Y = 0;
+		control->shared->planes[j + 1].final_X = 0;
+		control->shared->planes[j + 1].final_Y = 0;
+		control->shared->planes[j + 1].velocidade = 0;
+		control->shared->planes[j + 1].X = 0;
+		control->shared->planes[j + 1].Y = 0;
+		control->shared->planes[j + 1].voar = 0;
+
+		control->shared->curPlane--;
+
+		return 1;
 	}
 
 	return 0;

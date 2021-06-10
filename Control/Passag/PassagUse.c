@@ -166,6 +166,13 @@ DWORD WINAPI tratamentoDeComunicacao(LPVOID lpParam)
 			break;
 		}
 		_tprintf(TEXT("[LEITOR] Recebi %d bytes: '%s'... (ReadFile)\n"), n, pDataArray->msg);
+
+		if (_tcscmp(pDataArray->msg, TEXT("NO")))
+		{
+			_tprintf(TEXT("\nResposta negativa de entrada do Passag %s no Sistema Control.\n"), pDataArray->nome);
+
+			break;
+		}
 	}
 
 	CloseHandle(pDataArray->hPipe);

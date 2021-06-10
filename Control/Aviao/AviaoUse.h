@@ -32,7 +32,7 @@
 
 //Vari�veis do Registry//
 #define REG_SETTINGS_KEY TEXT("Software\\CONTROL\\SETTINGS")
-#define MAX_PASS 5
+#define MAX_PASS 2
 #define MAX_VELO 3
 #define SETTINGS_AERO TEXT("maxAero")
 #define MAX_AERO 5

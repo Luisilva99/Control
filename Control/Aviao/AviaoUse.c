@@ -186,7 +186,7 @@ int comandSwitcher(PlaneData * aviao, TCHAR * comand) {
 		{
 			if ((auxB = _tcstok_s(NULL, TEXT(" "), &auxA)) != NULL)
 			{
-				int i = 0, j = 0;
+				int i = 0, j = 0, k = 0, h = 0;
 
 				if (_tcscmp(auxB, aviao->partida) == 0)
 				{
@@ -226,6 +226,10 @@ int comandSwitcher(PlaneData * aviao, TCHAR * comand) {
 				(aviao->buffer->planes)[j].final_X = (*aviao).final_X;
 
 				(aviao->buffer->planes)[j].final_Y = (*aviao).final_Y;
+
+				_stprintf_s(msg, TAM_INPUT, TEXT("Destino %d %s %s %d %d"), aviao->id, aviao->partida, aviao->destino, aviao->final_X, aviao->final_Y);
+
+				writeInCircularBuffer(aviao, msg);
 
 				return 1;
 			}
