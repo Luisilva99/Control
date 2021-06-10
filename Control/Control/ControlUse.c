@@ -920,7 +920,7 @@ int veryPassagEntry(MapUnit * map[], int * curAero, Passag * pass, int * curPass
 
 			_stprintf_s(pass->nome, TAM, TEXT("%s"), nome);
 
-			curPass++;
+			(*curPass)++;
 
 			return 1;
 		}
@@ -1028,6 +1028,8 @@ DWORD WINAPI ComsManager(LPVOID lpParam) {
 			pass->Pass->msg[n / sizeof(TCHAR)] = '\0';
 
 			_tprintf(TEXT("[LEITOR] Recebi %d bytes: '%s'... (ReadFile)\n"), n, pass->Pass->msg);
+
+			//criar função de tratamento de mensagens do Passag (para poder tratar do exit)
 
 			if (!veryPassagEntry(pass->map, pass->curAero, pass->Pass, pass->curPass, pass->Pass->msg))
 			{

@@ -170,7 +170,5 @@ DWORD WINAPI tratamentoDeComunicacao(LPVOID lpParam)
 
 	CloseHandle(pDataArray->hPipe);
 
-	//Sleep(200);
-
 	return 0;
 }
