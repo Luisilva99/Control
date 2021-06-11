@@ -800,7 +800,7 @@ DWORD WINAPI bufferCircular(LPVOID lpParam)
 
 								for (int i = 0; i < control->shared->curAero; i++)
 								{
-									if (_tcscmp(partida, (control->shared->map)[i].aeroName))
+									if (_tcscmp(partida, (control->shared->map)[i].aeroName) == 0)
 									{
 										for (int k = 0; k < (control->shared->map)[i].curHang; k++)
 										{
@@ -1018,8 +1018,6 @@ DWORD WINAPI tratamentoDeComunicacao(LPVOID lpParam) {
 
 	for (int i = 0; i < MAX_PASS_CONTROL; i++)
 	{
-		_tprintf(TEXT("[ESCRITOR] Criar uma cópia do pipe '%s' (CreateNamedPipe)\n"), PASSAG_PIPE);//DEBUG
-
 		pDataArray->Pass[i].Comns = CreateNamedPipe(PASSAG_PIPE,
 			PIPE_ACCESS_DUPLEX |     // read/write access
 			FILE_FLAG_OVERLAPPED,
@@ -1066,7 +1064,7 @@ DWORD WINAPI tratamentoDeComunicacao(LPVOID lpParam) {
 
 		if (hThread[i] == NULL)
 		{
-			_tprintf(TEXT("CreateThread failed, GLE=%d.\n"), GetLastError());
+			_tprintf(TEXT("CreateThread for Pipe failed, GLE=%d.\n"), GetLastError());
 
 			return -2;
 		}
@@ -1138,67 +1136,6 @@ DWORD WINAPI ComsManager(LPVOID lpParam) {
 			_tprintf(TEXT("[ERRO] Desligar o pipe! (DisconnectNamedPipe)"));
 
 			return -4;
-		}
-	}
-
-	return 0;
-}
-
-
-int deletePlane(ControlData* control, int id) {
-	for (int i = 0; i < control->shared->curPlane; i++)
-	{
-		if (control->shared->planes[i].id == id)
-		{
-			if (control->shared->curPlane == i)
-			{
-				_stprintf_s(control->shared->planes[i].destino, TAM, TEXT("%s"), TEXT(""));
-				_stprintf_s(control->shared->planes[i].partida, TAM, TEXT("%s"), TEXT(""));
-				ZeroMemory(control->shared->planes[i].pass, sizeof(Passag) * control->shared->planes[i].maxPass);
-				control->shared->planes[i].curPass = 0;
-				control->shared->planes[i].id = 0;
-				control->shared->planes[i].maxPass = 0;
-				control->shared->planes[i].next_X = 0;
-				control->shared->planes[i].next_Y = 0;
-				control->shared->planes[i].final_X = 0;
-				control->shared->planes[i].final_Y = 0;
-				control->shared->planes[i].velocidade = 0;
-				control->shared->planes[i].X = 0;
-				control->shared->planes[i].Y = 0;
-				control->shared->planes[i].voar = 0;
-
-				control->shared->curPlane--;
-
-				return 1;
-			}
-			else
-			{
-				int j;
-
-				for (j = i; j < control->shared->curPlane; j++)
-				{
-					control->shared->planes[j] = control->shared->planes[j + 1];
-				}
-
-				_stprintf_s(control->shared->planes[j].destino, TAM, TEXT("%s"), TEXT(""));
-				_stprintf_s(control->shared->planes[j].partida, TAM, TEXT("%s"), TEXT(""));
-				ZeroMemory(control->shared->planes[j].pass, sizeof(Passag) * control->shared->planes[i].maxPass);
-				control->shared->planes[j].curPass = 0;
-				control->shared->planes[j].id = 0;
-				control->shared->planes[j].maxPass = 0;
-				control->shared->planes[j].next_X = 0;
-				control->shared->planes[j].next_Y = 0;
-				control->shared->planes[j].final_X = 0;
-				control->shared->planes[j].final_Y = 0;
-				control->shared->planes[j].velocidade = 0;
-				control->shared->planes[j].X = 0;
-				control->shared->planes[j].Y = 0;
-				control->shared->planes[j].voar = 0;
-
-				control->shared->curPlane--;
-
-				return 1;
-			}
 		}
 	}
 

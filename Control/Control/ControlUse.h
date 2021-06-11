@@ -236,13 +236,7 @@ int veryPassagEntry(MapUnit * map[], int * curAero, Passag * pass, int * curPass
 //		1	-	Comando foi tratado
 int comandSwitcher(ControlData * control, TCHAR * comand);
 
-//Função de Eliminação de Aviões
-//Recebe:
-//		control	-	Dados do Control
-//		id		-	ID Plane a eliminar
-int deletePlane(ControlData* control, int id);
-
-//Função de Eliminação de Aviões em Estado de Voo
+//Função de Eliminação de Aviões na Lista dos Dados do Control
 //Recebe:
 //		control	-	Dados do Control
 //		pos		-	Posição do Plane nos Dados do Control a eliminar
