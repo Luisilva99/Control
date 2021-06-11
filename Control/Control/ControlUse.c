@@ -900,7 +900,7 @@ DWORD WINAPI bufferCircular(LPVOID lpParam)
 							}
 
 							_stprintf_s((control->shared->map)[i].hangar[(control->shared->map)[i].curHang].destino, TAM, TEXT("%s"), TEXT(""));
-							_stprintf_s((control->shared->map)[i].hangar[(control->shared->map)[i].curHang].partida, TAM, TEXT("%s"), (control->shared->planes)[k].destino);
+							_stprintf_s((control->shared->map)[i].hangar[(control->shared->map)[i].curHang].partida, TAM, TEXT("%s"), auxB);
 
 							//Avisar Passag que deixaram de existir
 							ZeroMemory((control->shared->map)[i].hangar[(control->shared->map)[i].curHang].pass, sizeof(Passag) * control->shared->planes[i].maxPass);
@@ -1171,10 +1171,6 @@ int deletePlaneFlying(ControlData* control, int pos) {
 	}
 	else
 	{
-		//Avisar Passag / Limpar dados deles
-
-		//
-
 		int j = pos;
 
 		for (; j < (control->shared->curPlane - 1); j++)
@@ -1184,7 +1180,11 @@ int deletePlaneFlying(ControlData* control, int pos) {
 
 		_stprintf_s(control->shared->planes[j + 1].destino, TAM, TEXT("%s"), TEXT(""));
 		_stprintf_s(control->shared->planes[j + 1].partida, TAM, TEXT("%s"), TEXT(""));
+
+		//Avisar Passag / Limpar dados deles
 		ZeroMemory(control->shared->planes[j + 1].pass, sizeof(Passag) * control->maxPass);
+		//
+
 		control->shared->planes[j + 1].curPass = 0;
 		control->shared->planes[j + 1].id = 0;
 		control->shared->planes[j + 1].maxPass = 0;

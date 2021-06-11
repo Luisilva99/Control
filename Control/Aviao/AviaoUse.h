@@ -188,13 +188,13 @@ DWORD WINAPI movePlane(LPVOID lpParam);
 //		1	-	Comando foi tratado
 int comandSwitcher(PlaneData * aviao, TCHAR * comand);
 
-//Fun��o de Verifica��o de posi��o vaga no Mapa para voar
+//Função de Verificação de Retificação da Posição do Avião em caso de Colisão Eminente
 //Recebe:
 //		aviao	-	Dados do Aviao
 //Retorna:
-//		0	-	Posi��o encontra-se ocupada por um avi�o
-//		1	-	Posi��o est� livre para voar
-int veryMapEmptyPlace(PlaneData * aviao);
+//		0	-	Posição livre para voar
+//		1	-	Posição encontra-se ocupada por um avião
+int colisionDetector(PlaneData * aviao, int finalX, int finalY);
 
 //Fun��o de Escrita no Buffer Circular
 //Recebe:

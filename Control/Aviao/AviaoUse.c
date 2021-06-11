@@ -117,22 +117,6 @@ void listPlaneInfo(PlaneData aviao) {
 }
 
 
-int veryMapEmptyPlace(PlaneData * aviao) {
-	for (int i = 0; i < aviao->buffer->curPlane; i++)
-	{
-		if ((aviao->buffer->planes)[i].id != aviao->id && (aviao->buffer->planes)[i].voar == 1)
-		{
-			if (((aviao->buffer->planes)[i].X == aviao->next_X) && ((aviao->buffer->planes)[i].Y == aviao->next_Y))
-			{
-				return 0;
-			}
-		}
-	}
-
-	return 1;
-}
-
-
 int comandSwitcher(PlaneData * aviao, TCHAR * comand) {
 	TCHAR * auxA;
 	TCHAR * auxB = _tcstok_s(comand, TEXT(" "), &auxA);
@@ -215,7 +199,7 @@ int comandSwitcher(PlaneData * aviao, TCHAR * comand) {
 				{
 					if ((aviao->buffer->planes)[j].id == aviao->id)
 					{
-						_tprintf(TEXT("\nAvião em Control foi encontrado.\n"));//DEBUG
+						_tprintf(TEXT("\nAvião em Control foi encontrado.\n"));
 
 						break;
 					}
@@ -377,10 +361,6 @@ DWORD WINAPI movePlane(LPVOID lpParam)
 
 				if (result == 0)
 				{
-					aviao->X = aviao->next_X;
-
-					aviao->Y = aviao->next_Y;
-
 					_tprintf(TEXT("\nAvião %d na posição [X=%3d;Y=%3d]\n"), aviao->id, aviao->X, aviao->Y);
 
 					break;
@@ -392,40 +372,73 @@ DWORD WINAPI movePlane(LPVOID lpParam)
 					return -1;
 				}
 
-				if (!veryMapEmptyPlace(aviao))
+				if (colisionDetector(aviao, (*aviao).next_X, (*aviao).next_Y))
 				{
-					_tprintf(TEXT("\nPossivel colisão, vou desviar-me!\n"));//DEBUG
-
-					//DEBUG / Desvio Temporário
-					if (0 < aviao->X || aviao->X > MAP_TAM)
+					if (!colisionDetector(aviao, (*aviao).X, (*aviao).Y + 1))//Cima
 					{
-						if ((aviao->X - aviao->next_X) > 0)
-						{
-							aviao->next_X =- 1;
-						}
-						else
-						{
-							aviao->next_X =+ 1;
-						}
-					}
+						_tprintf(TEXT("\nDEBUG: Desvio Cima.\n"));
 
-					if (0 < aviao->Y || aviao->Y > MAP_TAM)
-					{
-						if ((aviao->Y - aviao->next_Y) > 0)
-						{
-							aviao->next_Y =- 1;
-						}
-						else
-						{
-							aviao->next_Y =+ 1;
-						}
+						aviao->Y = (*aviao).Y + 1;
 					}
-					//DEBUG / Desvio Temporário
+					else if (!colisionDetector(aviao, (*aviao).X, (*aviao).Y - 1))//Baixo
+					{
+						_tprintf(TEXT("\nDEBUG: Desvio Baixo.\n"));
+
+						aviao->Y = (*aviao).Y - 1;
+					}
+					else if (!colisionDetector(aviao, (*aviao).X + 1, (*aviao).Y))//Direita
+					{
+						_tprintf(TEXT("\nDEBUG: Desvio Direita.\n"));
+
+						aviao->X = (*aviao).X + 1;
+					}
+					else if (!colisionDetector(aviao, (*aviao).X - 1, (*aviao).Y))//Esquerda
+					{
+						_tprintf(TEXT("\nDEBUG: Desvio Esquerda.\n"));
+
+						aviao->X = (*aviao).X - 1;
+					}
+					else if (!colisionDetector(aviao, (*aviao).X + 1, (*aviao).Y + 1))//Direita + Cima
+					{
+						_tprintf(TEXT("\nDEBUG: Desvio Direita + Cima.\n"));
+
+						aviao->X = (*aviao).X + 1;
+
+						aviao->Y = (*aviao).Y + 1;
+					}
+					else if (!colisionDetector(aviao, (*aviao).X - 1, (*aviao).Y - 1))//Equerda + Baixo
+					{
+						_tprintf(TEXT("\nDEBUG: Desvio Esquerda + Baixo.\n"));
+
+						aviao->X = (*aviao).X - 1;
+
+						aviao->Y = (*aviao).Y - 1;
+					}
+					else if (!colisionDetector(aviao, (*aviao).X - 1, (*aviao).Y + 1))//Esquerda + Cima
+					{
+						_tprintf(TEXT("\nDEBUG: Desvio Esquerda + Cima.\n"));
+
+						aviao->X = (*aviao).X - 1;
+
+						aviao->Y = (*aviao).Y + 1;
+					}
+					else if (!colisionDetector(aviao, (*aviao).X + 1, (*aviao).Y - 1))//Direita + Baixo
+					{
+						_tprintf(TEXT("\nDEBUG: Desvio Direita + Baixo.\n"));
+
+						aviao->X = (*aviao).X + 1;
+
+						aviao->Y = (*aviao).Y - 1;
+					}
 				}
+				else
+				{
+					_tprintf(TEXT("\nSem colisão!\n"));
 
-				aviao->X = aviao->next_X;
+					aviao->X = aviao->next_X;
 
-				aviao->Y = aviao->next_Y;
+					aviao->Y = aviao->next_Y;
+				}
 
 				_tprintf(TEXT("\nAvião %d na posição [X=%3d;Y=%3d]\n"), aviao->id, aviao->X, aviao->Y);
 
@@ -439,7 +452,7 @@ DWORD WINAPI movePlane(LPVOID lpParam)
 			ReleaseMutex(aviao->mutexMoveSync);
 		}
 
-		_stprintf_s(msg, TAM_INPUT, TEXT("viagemEnd %d %s"), aviao->id, aviao->destino);
+		_stprintf_s(msg, TAM_INPUT, TEXT("viagemEnd %d %s"), (*aviao).id, (*aviao).destino);
 
 		writeInCircularBuffer(aviao, msg);
 
@@ -484,4 +497,31 @@ void writeInCircularBuffer(PlaneData * aviao, TCHAR * msg) {
 }
 
 
+int colisionDetector(PlaneData * aviao, int nextX, int nextY) {
+	int i = 0;
+
+	if (0 > nextX || nextX > MAP_TAM)
+	{
+		return 1;
+	}
+
+	if (0 > nextY || nextY > MAP_TAM)
+	{
+		return 1;
+	}
+
+	for (; i < aviao->buffer->curPlane; i++)
+	{
+		if ((aviao->buffer->planes)[i].id != aviao->id && (aviao->buffer->planes)[i].voar == 1) {
+			if (nextX == (aviao->buffer->planes)[i].X && nextY == (aviao->buffer->planes)[i].Y)
+			{
+				_tprintf(TEXT("\nColisão eminente detetada!\n"));
+
+				return 1;
+			}
+		}
+	}
+
+	return 0;
+}
 
