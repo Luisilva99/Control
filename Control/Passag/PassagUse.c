@@ -75,6 +75,14 @@ int comandSwitcher(Passag * pass, TCHAR * comand) {
 
 		return 1;
 	}
+	else if (_tcscmp(auxB, TEXT("exit")) == 0)
+	{
+		_stprintf_s(pass->msg, TAM, TEXT("%s"), TEXT("EXIT"));
+
+		SetEvent(pass->respTrigger);
+
+		return 1;
+	}
 	else if (_tcscmp(auxB, TEXT("DEBUG")) == 0)
 	{
 		if ((auxB = _tcstok_s(NULL, TEXT(" "), &auxA)) != NULL)
@@ -126,8 +134,10 @@ DWORD WINAPI tratamentoDeComunicacao(LPVOID lpParam)
 	int i = 0;
 	BOOL ret;
 	DWORD n;
+	HANDLE hThread;
+	DWORD dwThread;
 
-	_tprintf(TEXT("[LEITOR] Esperar pelo pipe '%s' (WaitNamedPipe)\n"), PASSAG_PIPE);
+	_tprintf(TEXT("[PASSAG] Esperar pelo pipe '%s' (WaitNamedPipe)\n"), PASSAG_PIPE);
 
 	if (!WaitNamedPipe(PASSAG_PIPE, NMPWAIT_WAIT_FOREVER)) {
 		_tprintf(TEXT("[ERRO] Ligar ao pipe '%s'! (WaitNamedPipe)\n"), PASSAG_PIPE);
@@ -135,7 +145,7 @@ DWORD WINAPI tratamentoDeComunicacao(LPVOID lpParam)
 		return -1;
 	}
 
-	_tprintf(TEXT("[LEITOR] Ligação ao pipe do escritor... (CreateFile)\n"));
+	_tprintf(TEXT("[PASSAG] Ligação ao pipe do Control... (CreateFile)\n"));
 
 	pDataArray->hPipe = CreateFile(PASSAG_PIPE, GENERIC_READ | GENERIC_WRITE, 0, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
 
@@ -145,7 +155,7 @@ DWORD WINAPI tratamentoDeComunicacao(LPVOID lpParam)
 		return -2;
 	}
 
-	_tprintf(TEXT("[LEITOR] Liguei-me...\n"));
+	_tprintf(TEXT("[PASSAG] Liguei-me...\nEnvio de Mensagem de entrada no Sistema."));
 
 	_stprintf_s(pDataArray->msg, TAM, TEXT("Passag %s %s %s %d"), pDataArray->nome, pDataArray->partida, pDataArray->destino, pDataArray->tempo);
 
@@ -157,25 +167,118 @@ DWORD WINAPI tratamentoDeComunicacao(LPVOID lpParam)
 
 	FlushFileBuffers(pDataArray->hPipe);
 
+	hThread = CreateThread(
+		NULL,
+		0,
+		ComsResponder,
+		(LPVOID)pDataArray,
+		CREATE_SUSPENDED,
+		&dwThread
+	);
+
+	if (hThread == NULL)
+	{
+		_tprintf(TEXT("CreateThread de Resposta ao Control por Pipe failed, GLE=%d.\n"), GetLastError());
+
+		CloseHandle(pDataArray->hPipe);
+
+		return -4;
+	}
+
 	while (1) {
-		ret = ReadFile(pDataArray->hPipe, pDataArray->msg, sizeof(pDataArray->msg), &n, NULL);
-		pDataArray->msg[n / sizeof(TCHAR)] = '\0';
+		ret = ReadFile(pDataArray->hPipe, pDataArray->resp, sizeof(pDataArray->resp), &n, NULL);
+
+		pDataArray->resp[n / sizeof(TCHAR)] = '\0';
+
 		if (!ret || !n) {
-			_tprintf(TEXT("[LEITOR] %d %d... (ReadFile)\n"), ret, n);
+			_tprintf(TEXT("\n[PASSAG] %d %d... (ReadFile)\n"), ret, n);
+
+			SetEvent(pDataArray->respTrigger);
 
 			break;
 		}
-		_tprintf(TEXT("[LEITOR] Recebi %d bytes: '%s'... (ReadFile)\n"), n, pDataArray->msg);
+		_tprintf(TEXT("\n[PASSAG] Recebi %d bytes: '%s'... (ReadFile)\n"), n, pDataArray->resp);
 
-		if (_tcscmp(pDataArray->msg, TEXT("NO")))
+		if (_tcscmp(pDataArray->resp, TEXT("NO_ENTER")) == 0)
 		{
 			_tprintf(TEXT("\nResposta negativa de entrada do Passag %s no Sistema Control.\n"), pDataArray->nome);
 
+			TerminateThread(hThread, dwThread);
+
 			break;
+		}
+		else if (_tcscmp(pDataArray->resp, TEXT("YES_ENTER")) == 0)
+		{
+			_tprintf(TEXT("\nResposta positiva de entrada do Passag %s no Sistema Control.\nLançamento de Thread de Escrita para com o Control.\n"), pDataArray->nome);
+
+			ResumeThread(hThread);
+
+			_stprintf_s(pDataArray->resp, TAM, TEXT("%s"), TEXT(""));
+		}
+		else if (_tcscmp(pDataArray->resp, TEXT("EXIT")) == 0)
+		{
+			_tprintf(TEXT("\nAviso de Sistema Control a desligar.\n"));
+
+			SetEvent(pDataArray->respTrigger);
+
+			break;
+		}
+		else if (_tcscmp(pDataArray->resp, TEXT("CHEGOU")) == 0)
+		{
+			_tprintf(TEXT("\nAviso de Sistema Control que chegou ao seu destino %s.\n"), pDataArray->destino);
+
+			SetEvent(pDataArray->respTrigger);
+
+			break;
+		}
+		else if (_tcscmp(pDataArray->resp, TEXT("VIAJAR")) == 0)
+		{
+			_tprintf(TEXT("\nAviso de Sistema Control que se encontra embarcado e em viagem ao seu destino %s.\n"), pDataArray->destino);
+
+			pDataArray->voar = 1;
 		}
 	}
 
+	WaitForSingleObject(hThread, INFINITE);
+
+	CloseHandle(hThread);
+
 	CloseHandle(pDataArray->hPipe);
+
+	return 0;
+}
+
+
+DWORD WINAPI ComsResponder(LPVOID lpParam)
+{
+	Passag * pDataArray;
+	pDataArray = (Passag*)lpParam;
+
+	int i = 0;
+	DWORD n;
+
+	while (1)
+	{
+		WaitForSingleObject(pDataArray->respTrigger, INFINITE);
+
+		if (_tcscmp(pDataArray->resp, TEXT("EXIT")) == 0 || _tcscmp(pDataArray->resp, TEXT("CHEGOU")) == 0)
+		{
+			return 0;
+		}
+
+		if (!WriteFile(pDataArray->hPipe, pDataArray->msg, _tcslen(pDataArray->msg) * sizeof(TCHAR), &n, NULL)) {
+			_tprintf(TEXT("[ERRO] Escrever no pipe! (WriteFile)\n"));
+
+			return -1;
+		}
+
+		FlushFileBuffers(pDataArray->hPipe);
+
+		if (_tcscmp(pDataArray->msg, TEXT("EXIT")) == 0)
+		{
+			return 0;
+		}
+	}
 
 	return 0;
 }

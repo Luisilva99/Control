@@ -23,7 +23,7 @@
 #define MAX_PLANES 5
 #define SETTINGS_AERO TEXT("maxAero")
 #define MAX_AERO 5
-#define MAX_PASS 2
+#define MAX_PASS 4
 #define MAX_PASS_CONTROL MAX_PASS
 //---------------------//
 
@@ -241,5 +241,11 @@ int comandSwitcher(ControlData * control, TCHAR * comand);
 //		control	-	Dados do Control
 //		pos		-	Posição do Plane nos Dados do Control a eliminar
 int deletePlaneFlying(ControlData* control, int pos);
+
+//Função de Eliminação de Passageiros na Lista dos Dados do Control
+//Recebe:
+//		pass	-	Dados de comunicação do Control com um Passag
+//		partida	-	Aeroporto em que o Passag reside
+int deletePassagAero(PassagComsData * pass, TCHAR * partida);
 
 #endif

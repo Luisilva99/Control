@@ -9,19 +9,13 @@
 
 
 int _tmain(int argc, TCHAR* argv[]) {
-
-
-
-	//// Variaveis de comunicação dos pipes
-	//HANDLE hPipe;
-	//DWORD dwWritten;
-
 	// Threads
 	HANDLE hThread[3];
 	DWORD dwThread[3];
 
 	// Sincronização
 	HANDLE semaphorePassagGate;
+	TCHAR respTriggerName[TAM_INPUT];
 
 	// Dados do Passag
 	Passag pass;
@@ -60,7 +54,7 @@ int _tmain(int argc, TCHAR* argv[]) {
 	_stprintf_s(pass.destino, TAM, TEXT("%s"), argv[2]);
 
 	//nome							DEBUG
-	_stprintf_s(pass.nome, TAM, TEXT("%s"), argv[3]);
+	_stprintf_s(pass.nome, TAM, TEXT("%s%d"), argv[3], (int)GetCurrentProcessId());
 
 	//tempo de espera / opcional!	DEBUG
 	if (argv[4] != NULL)
@@ -100,15 +94,33 @@ int _tmain(int argc, TCHAR* argv[]) {
 		return -4;
 	}
 
-	_tprintf(TEXT("\nEntrada com sucesso em Control!\n"));
+	_tprintf(TEXT("\nEntrada com sucesso nas vagas do Sistema Control!\n"));
+
+	_stprintf_s(respTriggerName, TAM_INPUT, TEXT("%s%d"), pass.nome, (int)GetCurrentProcessId());
+
+	pass.respTrigger = CreateEvent(
+		NULL,
+		FALSE,
+		FALSE,
+		respTriggerName
+	);
+
+	if (pass.respTrigger == NULL)
+	{
+		_tprintf(TEXT("\nCriação do evento %s de terminação de todos os sistemas não foi criado com sucesso!\nErro %d\n"), respTriggerName, GetLastError());
+
+		ReleaseSemaphore(semaphorePassagGate, 1, 0);
+
+		CloseHandle(semaphorePassagGate);
+
+		_gettch();
+
+		return -5;
+	}
+
+	_tprintf(TEXT("\nCriação do evento %s de envio de mensagens para o Sistema Control foi criado com sucesso!\n"), respTriggerName);
 
 	//######-------------######//
-
-	//########Verificação de Existencia dos Aeroportos########//
-
-
-
-	//########----------------------------------------########//
 
 	//######Threads######//
 
@@ -124,6 +136,8 @@ int _tmain(int argc, TCHAR* argv[]) {
 	if (hThread[0] == NULL)
 	{
 		_tprintf(TEXT("CreateThread de Tratamento de Comandos failed, GLE=%d.\n"), GetLastError());
+
+		CloseHandle(pass.respTrigger);
 
 		ReleaseSemaphore(semaphorePassagGate, 1, 0);
 
@@ -145,6 +159,8 @@ int _tmain(int argc, TCHAR* argv[]) {
 		_tprintf(TEXT("\nCriação do evento de Shutdown foi criado com sucesso!\nErro %d\n"), GetLastError());
 
 		CloseHandle(hThread[0]);
+
+		CloseHandle(pass.respTrigger);
 
 		ReleaseSemaphore(semaphorePassagGate, 1, 0);
 
@@ -172,6 +188,8 @@ int _tmain(int argc, TCHAR* argv[]) {
 
 		CloseHandle(hThread[0]);
 
+		CloseHandle(pass.respTrigger);
+
 		ReleaseSemaphore(semaphorePassagGate, 1, 0);
 
 		CloseHandle(semaphorePassagGate);
@@ -194,6 +212,8 @@ int _tmain(int argc, TCHAR* argv[]) {
 		CloseHandle(hThread[i]);
 	}
 
+	CloseHandle(pass.respTrigger);
+
 	ReleaseSemaphore(semaphorePassagGate, 1, 0);
 
 	CloseHandle(semaphorePassagGate);
@@ -201,25 +221,5 @@ int _tmain(int argc, TCHAR* argv[]) {
 	_gettch();
 
 	return 0;
-
-	//hPipe = CreateFile(TEXT("\\\\.\\pipe\\Pipe"),
-	//	GENERIC_READ | GENERIC_WRITE,
-	//	0,
-	//	NULL,
-	//	OPEN_EXISTING,
-	//	0,
-	//	NULL);
-	//if (hPipe != INVALID_HANDLE_VALUE)
-	//{
-	//	WriteFile(hPipe,
-	//		"Hello Pipe\n",
-	//		12,   // = length of string + terminating '\0' !!!
-	//		&dwWritten,
-	//		NULL);
-
-	//	CloseHandle(hPipe);
-	//}
-
-	//return 0;
 }
 

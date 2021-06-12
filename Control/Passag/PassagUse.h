@@ -50,6 +50,7 @@ typedef struct
 	HANDLE hPipe;					// Handle de coms Pipe
 	TCHAR resp[TAM];				// Resposta do Control
 	TCHAR msg[TAM];					// Msg do Control
+	HANDLE respTrigger;				// Handle do evento de envio de mensagem para o Control
 } Passag;
 //---------------------//
 
@@ -79,6 +80,11 @@ DWORD WINAPI tratamentoDeComandos(LPVOID lpParam);
 //Recebe:
 //		lpParam	-	Dados do Passag
 DWORD WINAPI tratamentoDeComunicacao(LPVOID lpParam);
+
+//Thread de Tratamento de Envio de Mensagens do Passag ao Control por Pipe
+//Recebe:
+//		lpParam	-	Dados do Passag
+DWORD WINAPI ComsResponder(LPVOID lpParam);
 
 //Função de Tratamento de Comandos do Passag
 //Recebe:
