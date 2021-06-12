@@ -637,7 +637,8 @@ DWORD WINAPI bufferCircular(LPVOID lpParam)
 			{
 				id = _tstoi(auxB);
 
-				int i = 0, j = 0;
+				int i = 0, j = 0, r = 0;
+				DWORD n;
 
 				for (; i < control->shared->curPlane; i++)
 				{
@@ -653,35 +654,91 @@ DWORD WINAPI bufferCircular(LPVOID lpParam)
 					}
 				}
 
+				for (; r < (control->shared->map)[j].curHang; r++)
+				{
+					if ((control->shared->map)[j].hangar[r].id == id) {
+						break;
+					}
+				}
+
 				for (int h = 0; h < (control->shared->map)[j].curPass; h++)
 				{
 					if (_tcscmp((control->shared->map)[j].passageiros[h].destino, (control->shared->planes)[i].destino) == 0)
 					{
+						//#######Aviso de Chegada ao Destino aos Passag#######//
 
-						//Rever esta zona//
+						_stprintf_s((control->shared->map)[j].passageiros[h].resp, TAM, TEXT("%s"), TEXT("EMBARCADO"));
+
+						if (!WriteFile((control->shared->map)[j].passageiros[h].Comns, (control->shared->map)[j].passageiros[h].resp, _tcslen((control->shared->map)[j].passageiros[h].resp) * sizeof(TCHAR), &n, NULL)) {
+							_tprintf(TEXT("[ERRO] Escrever no pipe! (WriteFile)\n"));
+
+							break;
+						}
+
+						_stprintf_s((control->shared->map)[j].passageiros[h].msg, TAM, TEXT("%s"), TEXT(""));
+
+						FlushFileBuffers((control->shared->map)[j].passageiros[h].Comns);
+
+						_stprintf_s((control->shared->map)[j].passageiros[h].resp, TAM, TEXT("%s"), TEXT(""));
+
+						//#######--------------------------------------#######//
+
 						if ((control->shared->planes)[i].curPass < (control->shared->planes)[i].maxPass)
 						{
 							(control->shared->planes)[i].pass[(control->shared->planes)[i].curPass] = (control->shared->map)[j].passageiros[h];
 
 							(control->shared->planes)[i].curPass++;
 
-							for (int k = h; k < (control->shared->map)[j].curPass; k++)
+							(control->shared->map)[j].hangar[r].pass[(control->shared->planes)[i].curPass] = (control->shared->map)[j].passageiros[h];
+
+							(control->shared->map)[j].hangar[r].curPass++;
+
+							if ((control->shared->map)[j].curPass == 1)
 							{
-								(control->shared->map)[j].passageiros[k] = (control->shared->map)[j].passageiros[k + 1];
+								_stprintf_s((control->shared->map)[j].passageiros[0].partida, TAM, TEXT("%s"), TEXT(""));
+								_stprintf_s((control->shared->map)[j].passageiros[0].destino, TAM, TEXT("%s"), TEXT(""));
+								_stprintf_s((control->shared->map)[j].passageiros[0].nome, TAM, TEXT("%s"), TEXT(""));
+								_stprintf_s((control->shared->map)[j].passageiros[0].msg, TAM, TEXT("%s"), TEXT(""));
+								_stprintf_s((control->shared->map)[j].passageiros[0].resp, TAM, TEXT("%s"), TEXT(""));
+
+								(control->shared->map)[j].passageiros[0].tempo = 0;
+								(control->shared->map)[j].passageiros[0].voar = 0;
+
+								(control->shared->map)[j].curPass--;
+
+								h--;
 							}
+							else
+							{
+								int k = h;
 
-							(control->shared->map)[j].passageiros[(control->shared->map)[j].curPass].tempo = 0;
+								for (; k < (control->shared->map)[j].curPass - 1; k++)
+								{
+									(control->shared->map)[j].passageiros[k] = (control->shared->map)[j].passageiros[k + 1];
+								}
 
-							_stprintf_s((control->shared->map)[j].passageiros[(control->shared->map)[j].curPass].partida, TAM, TEXT("%s"), TEXT(""));
+								_stprintf_s((control->shared->map)[j].passageiros[k + 1].partida, TAM, TEXT("%s"), TEXT(""));
+								_stprintf_s((control->shared->map)[j].passageiros[k + 1].destino, TAM, TEXT("%s"), TEXT(""));
+								_stprintf_s((control->shared->map)[j].passageiros[k + 1].nome, TAM, TEXT("%s"), TEXT(""));
+								_stprintf_s((control->shared->map)[j].passageiros[k + 1].msg, TAM, TEXT("%s"), TEXT(""));
+								_stprintf_s((control->shared->map)[j].passageiros[k + 1].resp, TAM, TEXT("%s"), TEXT(""));
 
-							_stprintf_s((control->shared->map)[j].passageiros[(control->shared->map)[j].curPass].destino, TAM, TEXT("%s"), TEXT(""));
+								(control->shared->map)[j].passageiros[k + 1].tempo = 0;
+								(control->shared->map)[j].passageiros[k + 1].voar = 0;
+
+								(control->shared->map)[j].curPass--;
+
+								h--;
+							}
+						}
+						else
+						{
+							break;
 						}
 						//---------------//
 
 					}
 				}
-
-				(control->shared->map)[j].curPass = (control->shared->map)[j].curPass - (control->shared->planes)[i].curPass;
 			}
 		}
 		else if (_tcscmp(auxB, TEXT("Terminar")) == 0)
@@ -736,9 +793,7 @@ DWORD WINAPI bufferCircular(LPVOID lpParam)
 									_stprintf_s((control->shared->map)[k].hangar[(control->shared->map)[k].curHang].destino, TAM, TEXT("%s"), TEXT(""));
 									_stprintf_s((control->shared->map)[k].hangar[(control->shared->map)[k].curHang].partida, TAM, TEXT("%s"), TEXT(""));
 
-									//Se tiver passageiros avisar estes
 									ZeroMemory((control->shared->map)[k].hangar[(control->shared->map)[k].curHang].pass, sizeof(Passag) * MAX_PASS);
-									//
 
 									(control->shared->map)[k].hangar[(control->shared->map)[k].curHang].curPass = 0;
 									(control->shared->map)[k].hangar[(control->shared->map)[k].curHang].id = 0;
@@ -827,11 +882,37 @@ DWORD WINAPI bufferCircular(LPVOID lpParam)
 		}
 		else if (_tcscmp(auxB, TEXT("viagemStart")) == 0)
 		{
-			int id;
+			int id, k = 0;
+			DWORD n;
 
 			if ((auxB = _tcstok_s(NULL, TEXT(" "), &auxA)) != NULL)
 			{
 				id = _tstoi(auxB);
+
+				for (; k < control->shared->curPlane; k++)
+				{
+					if ((control->shared->planes)[k].id == id)
+					{
+						break;
+					}
+				}
+
+				//#######Aviso de Chegada ao Destino aos Passag#######//
+
+				for (int i = 0; i < (control->shared->planes)[k].curPass; i++)
+				{
+					_stprintf_s((control->shared->planes)[k].pass[i].resp, TAM, TEXT("%s"), TEXT("VIAJAR"));
+
+					if (!WriteFile((control->shared->planes)[k].pass[i].Comns, (control->shared->planes)[k].pass[i].resp, _tcslen((control->shared->planes)[k].pass[i].resp) * sizeof(TCHAR), &n, NULL)) {
+						_tprintf(TEXT("[ERRO] Escrever no pipe! (WriteFile)\n"));
+
+						break;
+					}
+
+					FlushFileBuffers((control->shared->planes)[k].pass[i].Comns);
+				}
+
+				//#######--------------------------------------#######//
 
 				if ((auxB = _tcstok_s(NULL, TEXT(" "), &auxA)) != NULL)
 				{
@@ -847,9 +928,7 @@ DWORD WINAPI bufferCircular(LPVOID lpParam)
 							_stprintf_s((control->shared->map)[i].hangar[(control->shared->map)[i].curHang].destino, TAM, TEXT("%s"), TEXT(""));
 							_stprintf_s((control->shared->map)[i].hangar[(control->shared->map)[i].curHang].partida, TAM, TEXT("%s"), TEXT(""));
 
-							//Avisar Passag que viagem começou
 							ZeroMemory((control->shared->map)[i].hangar[(control->shared->map)[i].curHang].pass, sizeof(Passag) * control->shared->planes[i].maxPass);
-							//
 
 							(control->shared->map)[i].hangar[(control->shared->map)[i].curHang].curPass = 0;
 							(control->shared->map)[i].hangar[(control->shared->map)[i].curHang].id = 0;
@@ -871,13 +950,12 @@ DWORD WINAPI bufferCircular(LPVOID lpParam)
 		}
 		else if (_tcscmp(auxB, TEXT("viagemEnd")) == 0)
 		{
-			int id;
+			int id, k = 0;
+			DWORD n;
 
 			if ((auxB = _tcstok_s(NULL, TEXT(" "), &auxA)) != NULL)
 			{
 				id = _tstoi(auxB);
-
-				int k = 0;
 
 				for (; k < control->shared->curPlane; k++)
 				{
@@ -886,6 +964,23 @@ DWORD WINAPI bufferCircular(LPVOID lpParam)
 						break;
 					}
 				}
+
+				//#######Aviso de Chegada ao Destino aos Passag#######//
+
+				for (int i = 0; i < (control->shared->planes)[k].curPass; i++)
+				{
+					_stprintf_s((control->shared->planes)[k].pass[i].resp, TAM, TEXT("%s"), TEXT("CHEGOU"));
+
+					if (!WriteFile((control->shared->planes)[k].pass[i].Comns, (control->shared->planes)[k].pass[i].resp, _tcslen((control->shared->planes)[k].pass[i].resp) * sizeof(TCHAR), &n, NULL)) {
+						_tprintf(TEXT("[ERRO] Escrever no pipe! (WriteFile)\n"));
+
+						break;
+					}
+
+					FlushFileBuffers((control->shared->planes)[k].pass[i].Comns);
+				}
+
+				//#######--------------------------------------#######//
 
 				if ((auxB = _tcstok_s(NULL, TEXT(" "), &auxA)) != NULL)
 				{
@@ -902,9 +997,7 @@ DWORD WINAPI bufferCircular(LPVOID lpParam)
 							_stprintf_s((control->shared->map)[i].hangar[(control->shared->map)[i].curHang].destino, TAM, TEXT("%s"), TEXT(""));
 							_stprintf_s((control->shared->map)[i].hangar[(control->shared->map)[i].curHang].partida, TAM, TEXT("%s"), auxB);
 
-							//Avisar Passag que deixaram de existir
 							ZeroMemory((control->shared->map)[i].hangar[(control->shared->map)[i].curHang].pass, sizeof(Passag) * control->shared->planes[i].maxPass);
-							//
 
 							(control->shared->map)[i].hangar[(control->shared->map)[i].curHang].curPass = 0;
 							(control->shared->map)[i].hangar[(control->shared->map)[i].curHang].id = (control->shared->planes)[k].id;
@@ -1006,6 +1099,8 @@ int veryPassagEntry(MapUnit * map[], int * curAero, Passag * pass, int * curPass
 			_stprintf_s((*map)[i].passageiros[(*map)[i].curPass].msg, TAM, TEXT("%s"), TEXT(""));
 			_stprintf_s((*map)[i].passageiros[(*map)[i].curPass].resp, TAM, TEXT("%s"), TEXT(""));
 
+			(*map)[i].passageiros[(*map)[i].curPass].Comns = pass->Comns;
+
 			(*map)[i].passageiros[(*map)[i].curPass].voar = 0;
 			(*map)[i].passageiros[(*map)[i].curPass].tempo = tempo;
 
@@ -1029,7 +1124,7 @@ DWORD WINAPI tratamentoDeComunicacao(LPVOID lpParam) {
 
 	for (int i = 0; i < MAX_PASS_CONTROL; i++)
 	{
-		pDataArray->Pass[i].Comns = CreateNamedPipe(PASSAG_PIPE,
+		(*pDataArray).Pass[i].Comns = CreateNamedPipe(PASSAG_PIPE,
 			PIPE_ACCESS_DUPLEX |     // read/write access
 			FILE_FLAG_OVERLAPPED,
 			PIPE_WAIT | PIPE_TYPE_MESSAGE | PIPE_READMODE_MESSAGE,
@@ -1039,7 +1134,7 @@ DWORD WINAPI tratamentoDeComunicacao(LPVOID lpParam) {
 			1000,
 			NULL);
 
-		if (pDataArray->Pass[i].Comns == INVALID_HANDLE_VALUE) {
+		if ((*pDataArray).Pass[i].Comns == INVALID_HANDLE_VALUE) {
 			_tprintf(TEXT("[ERRO] Criar Named Pipe! (CreateNamedPipe)"));
 
 			return -1;
@@ -1146,6 +1241,11 @@ DWORD WINAPI ComsManager(LPVOID lpParam) {
 				break;
 			}
 
+			if (!_tcsclen(pass->Pass->msg))
+			{
+				continue;
+			}
+
 			if (!veryPassagEntry(pass->map, pass->curAero, pass->Pass, pass->curPass, pass->Pass->msg))
 			{
 				_stprintf_s(pass->Pass->resp, TAM, TEXT("%s"), TEXT("NO_ENTER"));
@@ -1185,14 +1285,35 @@ DWORD WINAPI ComsManager(LPVOID lpParam) {
 
 
 int deletePlaneFlying(ControlData* control, int pos) {
+	DWORD n;
+
+	//#######Aviso de Acidente aos Passag#######//
+
+	for (int i = 0; i < (control->shared->planes)[pos].curPass; i++)
+	{
+		_stprintf_s((control->shared->planes)[pos].pass[i].resp, TAM, TEXT("%s"), TEXT("EXIT"));
+
+		if (!WriteFile((control->shared->planes)[pos].pass[i].Comns, (control->shared->planes)[pos].pass[i].resp, _tcslen((control->shared->planes)[pos].pass[i].resp) * sizeof(TCHAR), &n, NULL)) {
+			_tprintf(TEXT("[ERRO] Escrever no pipe! (WriteFile)\n"));
+
+			break;
+		}
+
+		_stprintf_s((control->shared->planes)[pos].pass[i].msg, TAM, TEXT("%s"), TEXT(""));
+
+		FlushFileBuffers((control->shared->planes)[pos].pass[i].Comns);
+
+		_stprintf_s((control->shared->planes)[pos].pass[i].resp, TAM, TEXT("%s"), TEXT(""));
+	}
+
+	//#######----------------------------#######//
+
 	if (control->shared->curPlane == 1)
 	{
 		_stprintf_s(control->shared->planes[pos].destino, TAM, TEXT("%s"), TEXT(""));
 		_stprintf_s(control->shared->planes[pos].partida, TAM, TEXT("%s"), TEXT(""));
 
-		//Aviso Passag
 		ZeroMemory(control->shared->planes[pos].pass, sizeof(Passag) * control->maxPass);
-		//
 
 		control->shared->planes[pos].curPass = 0;
 		control->shared->planes[pos].id = 0;
@@ -1222,9 +1343,7 @@ int deletePlaneFlying(ControlData* control, int pos) {
 		_stprintf_s(control->shared->planes[j + 1].destino, TAM, TEXT("%s"), TEXT(""));
 		_stprintf_s(control->shared->planes[j + 1].partida, TAM, TEXT("%s"), TEXT(""));
 
-		//Avisar Passag / Limpar dados deles
 		ZeroMemory(control->shared->planes[j + 1].pass, sizeof(Passag) * control->maxPass);
-		//
 
 		control->shared->planes[j + 1].curPass = 0;
 		control->shared->planes[j + 1].id = 0;
@@ -1298,6 +1417,68 @@ int deletePassagAero(PassagComsData * pass, TCHAR * partida) {
 				(pass->map)[i]->passageiros[k + 1].voar = 0;
 
 				pass->map[i]->curPass--;
+
+				return 1;
+			}
+		}
+	}
+
+	return 0;
+}
+
+
+int deletePassagAeroForTravel(ControlData * control, TCHAR * partida, TCHAR * destino) {
+	for (int i = 0; i < control->shared->curAero; i++)
+	{
+		if (_tcscmp(&(control->shared->map[i]).aeroName, partida) == 0)
+		{
+			if ((control->shared->map[i]).curPass == 1)
+			{
+				_stprintf_s((control->shared->map[i]).passageiros[0].destino, TAM, TEXT("%s"), TEXT(""));
+				_stprintf_s((control->shared->map[i]).passageiros[0].partida, TAM, TEXT("%s"), TEXT(""));
+				_stprintf_s((control->shared->map[i]).passageiros[0].resp, TAM, TEXT("%s"), TEXT(""));
+				_stprintf_s((control->shared->map[i]).passageiros[0].msg, TAM, TEXT("%s"), TEXT(""));
+				_stprintf_s((control->shared->map[i]).passageiros[0].nome, TAM, TEXT("%s"), TEXT(""));
+				(control->shared->map[i]).passageiros[0].tempo = 0;
+				(control->shared->map[i]).passageiros[0].voar = 0;
+
+				control->shared->map[i].curPass--;
+
+				return 1;
+			}
+			else
+			{
+				int pos = 0, k;
+
+				for (; pos < &(control->shared->map[i]).curPass; pos++)
+				{
+					if (_tcscmp(((control->shared->map[i]).passageiros)[pos].destino, destino) == 0)
+					{
+						break;
+					}
+				}
+
+				for (k = pos; k < control->shared->map[i].curPass - 1; k++)
+				{
+					_stprintf_s((control->shared->map[i]).passageiros[k].destino, TAM, TEXT("%s"), (control->shared->map[i]).passageiros[k + 1].destino);
+					_stprintf_s((control->shared->map[i]).passageiros[k].partida, TAM, TEXT("%s"), (control->shared->map[i]).passageiros[k + 1].partida);
+					_stprintf_s((control->shared->map[i]).passageiros[k].resp, TAM, TEXT("%s"), (control->shared->map[i]).passageiros[k + 1].resp);
+					_stprintf_s((control->shared->map[i]).passageiros[k].msg, TAM, TEXT("%s"), (control->shared->map[i]).passageiros[k + 1].msg);
+					_stprintf_s((control->shared->map[i]).passageiros[k].nome, TAM, TEXT("%s"), (control->shared->map[i]).passageiros[k + 1].nome);
+					(control->shared->map[i]).passageiros[k].tempo = (control->shared->map[i]).passageiros[k + 1].tempo;
+					(control->shared->map[i]).passageiros[k].voar = (control->shared->map[i]).passageiros[k + 1].voar;
+					(control->shared->map[i]).passageiros[k].Comns = (control->shared->map[i]).passageiros[k + 1].Comns;
+				}
+
+				_stprintf_s((control->shared->map[i]).passageiros[k + 1].destino, TAM, TEXT("%s"), TEXT(""));
+				_stprintf_s((control->shared->map[i]).passageiros[k + 1].partida, TAM, TEXT("%s"), TEXT(""));
+				_stprintf_s((control->shared->map[i]).passageiros[k + 1].resp, TAM, TEXT("%s"), TEXT(""));
+				_stprintf_s((control->shared->map[i]).passageiros[k + 1].msg, TAM, TEXT("%s"), TEXT(""));
+				_stprintf_s((control->shared->map[i]).passageiros[k + 1].nome, TAM, TEXT("%s"), TEXT(""));
+				(control->shared->map[i]).passageiros[k + 1].tempo = 0;
+				(control->shared->map[i]).passageiros[k + 1].voar = 0;
+
+				control->shared->map[i].curPass--;
 
 				return 1;
 			}

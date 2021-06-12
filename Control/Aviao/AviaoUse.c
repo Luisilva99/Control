@@ -170,7 +170,7 @@ int comandSwitcher(PlaneData * aviao, TCHAR * comand) {
 		{
 			if ((auxB = _tcstok_s(NULL, TEXT(" "), &auxA)) != NULL)
 			{
-				int i = 0, j = 0, k = 0, h = 0;
+				int i = 0, j = 0, k = 0, h = 0, found = 0;
 
 				if (_tcscmp(auxB, aviao->partida) == 0)
 				{
@@ -185,8 +185,17 @@ int comandSwitcher(PlaneData * aviao, TCHAR * comand) {
 					{
 						_tprintf(TEXT("\nDestino em Mapa de Control foi encontrado.\n"));
 
+						found = 1;
+
 						break;
 					}
+				}
+
+				if (!found)
+				{
+					_tprintf(TEXT("\nDestino introduzido não existe!\n"));
+
+					return 0;
 				}
 
 				_stprintf_s(aviao->destino, TAM, TEXT("%s"), (aviao->buffer->map)[i].aeroName);
@@ -258,7 +267,12 @@ int comandSwitcher(PlaneData * aviao, TCHAR * comand) {
 
 			writeInCircularBuffer(aviao, msg);
 
-			//Cópia dos passageiros embarcados para este avião para a estrutura principal de info dele
+			////criar wait para os passageiros serem atualizados
+
+			//for (int i = 0; i < aviao; i++)
+			//{
+
+			//}
 
 			return 1;
 		}

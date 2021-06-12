@@ -77,6 +77,13 @@ int comandSwitcher(Passag * pass, TCHAR * comand) {
 	}
 	else if (_tcscmp(auxB, TEXT("exit")) == 0)
 	{
+		if (pass->voar != 0)
+		{
+			_tprintf(TEXT("\nEncontra-se em viagem.\nÉ impossível parar neste momento!\n"));
+
+			return 0;
+		}
+
 		_stprintf_s(pass->msg, TAM, TEXT("%s"), TEXT("EXIT"));
 
 		SetEvent(pass->respTrigger);
@@ -213,11 +220,13 @@ DWORD WINAPI tratamentoDeComunicacao(LPVOID lpParam)
 
 			ResumeThread(hThread);
 
+			//Resume da Thread de Timeout!
+
 			_stprintf_s(pDataArray->resp, TAM, TEXT("%s"), TEXT(""));
 		}
 		else if (_tcscmp(pDataArray->resp, TEXT("EXIT")) == 0)
 		{
-			_tprintf(TEXT("\nAviso de Sistema Control a desligar.\n"));
+			_tprintf(TEXT("\nAviso de Sistema Control a desligar-me.\n"));
 
 			SetEvent(pDataArray->respTrigger);
 
@@ -233,9 +242,15 @@ DWORD WINAPI tratamentoDeComunicacao(LPVOID lpParam)
 		}
 		else if (_tcscmp(pDataArray->resp, TEXT("VIAJAR")) == 0)
 		{
-			_tprintf(TEXT("\nAviso de Sistema Control que se encontra embarcado e em viagem ao seu destino %s.\n"), pDataArray->destino);
+			_tprintf(TEXT("\nAviso de Sistema Control que se encontra em viagem ao seu destino %s.\n"), pDataArray->destino);
 
 			pDataArray->voar = 1;
+		}
+		else if (_tcscmp(pDataArray->resp, TEXT("EMBARCADO")) == 0)
+		{
+			_tprintf(TEXT("\nAviso de Sistema Control que se encontra embarcado para viagem ao seu destino %s.\n"), pDataArray->destino);
+
+			//Parar timeout!
 		}
 	}
 
