@@ -127,10 +127,12 @@ typedef struct {
 
 //Estrutura de Comunicação//
 typedef struct {
-	Passag * Pass;					//Passageiros
-	MapUnit * map[MAX_AERO];		//Aeroportos
-	int * curAero;					//Máximo de Aeroportos e tamanho atual
-	int * curPass;					//Máximo de Passageiros e tamanho atual
+	Passag * Pass;					// Passageiros
+	MapUnit * map[MAX_AERO];		// Aeroportos
+	int * curAero;					// Máximo de Aeroportos e tamanho atual
+	int * curPass;					// Máximo de Passageiros e tamanho atual
+	int ative;						// Flag de identificação se este Passag já se encontra no Sistema do Control
+	int response;					// Flag de resposta do Control a Passag
 } PassagComsData;
 //------------------------//
 

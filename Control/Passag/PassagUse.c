@@ -228,6 +228,8 @@ DWORD WINAPI tratamentoDeComunicacao(LPVOID lpParam)
 		{
 			_tprintf(TEXT("\nAviso de Sistema Control a desligar-me.\n"));
 
+			_stprintf_s(pDataArray->msg, TAM, TEXT("%s"), TEXT("EXIT"));
+
 			SetEvent(pDataArray->respTrigger);
 
 			break;
@@ -276,7 +278,7 @@ DWORD WINAPI ComsResponder(LPVOID lpParam)
 	{
 		WaitForSingleObject(pDataArray->respTrigger, INFINITE);
 
-		if (_tcscmp(pDataArray->resp, TEXT("EXIT")) == 0 || _tcscmp(pDataArray->resp, TEXT("CHEGOU")) == 0)
+		if (_tcscmp(pDataArray->resp, TEXT("CHEGOU")) == 0)
 		{
 			return 0;
 		}
