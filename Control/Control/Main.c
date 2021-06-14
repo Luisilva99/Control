@@ -442,71 +442,7 @@ int _tmain(int argc, TCHAR * argv[]) {
 
 	_tprintf(TEXT("\nSemáforo de entrada de Passageiros foi criado com sucesso!\n"));// DEBUG
 
-	control.passagSender = CreateEvent(
-		NULL,
-		FALSE,
-		FALSE,
-		SENDER_TRIGGER
-	);
-
-	if (control.passagSender == NULL)
-	{
-		_tprintf(TEXT("\nCriação do evento de envio de mensagens por Pipes não foi criado com sucesso!\nErro %d\n"), GetLastError());
-
-		CloseHandle(semaphorePassagGate);
-
-		CloseHandle(control.readBuffer);
-
-		CloseHandle(mutexWriters);
-
-		CloseHandle(control.systemShutdown);
-
-		CloseHandle(semaphoreGate);
-
-		CloseHandle(mutexMoveSync);
-
-		UnmapViewOfFile(pShared);
-
-		CloseHandle(hMapFile);
-
-		_gettch();
-
-		return -15;
-	}
-
-	_tprintf(TEXT("\nCriação do evento de envio de mensagens por Pipes foi criado com sucesso!\n"));//DEBUG
-
 	//#####------------#####//
-
-
-//	//Named pipes - comunicação com os passageiros
-//
-//	hPipe = CreateNamedPipe(TEXT("\\\\.\\pipe\\Pipe"),
-//		PIPE_ACCESS_DUPLEX,
-//		PIPE_TYPE_BYTE | PIPE_READMODE_BYTE | PIPE_WAIT,   // FILE_FLAG_FIRST_PIPE_INSTANCE is not needed but forces CreateNamedPipe(..) to fail if the pipe already exists...
-//		1,
-//		1024 * 16,
-//		1024 * 16,
-//		NMPWAIT_USE_DEFAULT_WAIT,
-//		NULL);
-//	while (hPipe != INVALID_HANDLE_VALUE)
-//	{
-//		if (ConnectNamedPipe(hPipe, NULL) != FALSE)   // wait for someone to connect to the pipe
-//		{
-//			while (ReadFile(hPipe, buffer, sizeof(buffer) - 1, &dwRead, NULL) != FALSE)
-//			{
-//				/* add terminating zero */
-//				buffer[dwRead] = '\0';
-//
-//				// faz algo com a informação do buffer
-//				printf("%s", buffer);
-//			}
-//		}
-//
-//		DisconnectNamedPipe(hPipe);
-//	}
-//
-//////////////////////////////////////////////////////////////////////
 
 	//######Lançamento das Threads######//
 

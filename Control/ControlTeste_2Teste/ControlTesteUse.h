@@ -1,5 +1,5 @@
-#ifndef CONTROLUSE_H
-#define CONTROLUSE_H
+#ifndef CONTROLTESTEUSE_H
+#define CONTROLTESTEUSE_H
 
 #include <windows.h>
 #include <tchar.h>
@@ -122,6 +122,12 @@ typedef struct {
 	HANDLE passagSender;			// Evento para aviso de escrita em todos os pipes dos Passag
 	HANDLE readBuffer;				// Semáforo para leitura do Buffer Circular
 	SharedBuffer * shared;			// Memória Partilhada com Aviao
+	int xBitmap;					// Coordenadas do X da localização do BITMAP na Janela
+	int yBitmap;					// Coordenadas do Y da localização do BITMAP na Janela
+	HBITMAP hBmp;					// Handle do Bitmap
+	HDC bmpDC;						// DC do Bitmap
+	BITMAP bmp;						// Bitmap
+	RECT rect;						// Zona de Desenho
 } ControlData;
 //------------------------------//
 

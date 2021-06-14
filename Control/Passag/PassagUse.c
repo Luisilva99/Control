@@ -291,6 +291,7 @@ DWORD WINAPI ComsResponder(LPVOID lpParam)
 
 		FlushFileBuffers(pDataArray->hPipe);
 
+
 		if (_tcscmp(pDataArray->msg, TEXT("EXIT")) == 0)
 		{
 			return 0;
